@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Educar para Transformar | Proyecto Final</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&family=Open+Sans:wght@400;600&display=swap');
+
+        :root {
+            --primary: #1e3a8a;
+            --secondary: #f97316;
+        }
+
+        body {
+            font-family: 'Open Sans', sans-serif;
+            scroll-behavior: smooth;
+        }
+
+        h1,
+        h2,
+        h3,
+        h4,
+        .font-heading {
+            font-family: 'Montserrat', sans-serif;
+        }
+
+        .slide {
+            display: none;
+        }
+
+        .slide.active {
+            display: flex;
+            animation: fadeIn 0.8s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .service-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--secondary);
+        }
+
+        .star-active {
+            color: #facc15;
+        }
+    </style>
+</head>
+
+<body class="bg-slate-50 text-slate-800">
+
+    <!-- Header -->
+    <header class="bg-white border-b sticky top-0 z-[100] shadow-sm">
+        <div
+            class="bg-blue-900 text-white py-2 px-6 text-[10px] font-bold uppercase tracking-widest hidden md:block text-center">
+            Excelencia Educativa en Resistencia, Chaco - Inscripciones Ciclo Lectivo 2027 Abiertas
+        </div>
+        <nav class="container mx-auto px-4 py-4 flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-blue-900 rounded-lg flex items-center justify-center text-white shadow-lg">
+                    <i class="fas fa-graduation-cap"></i>
+                </div>
+                <div>
+                    <span class="block font-black text-blue-900 uppercase leading-none">Educar para Transformar</span>
+                    <span class="text-[9px] text-orange-600 font-bold uppercase tracking-tighter">Centro
+                        Educativo</span>
+                </div>
+            </div>
+            <ul class="hidden lg:flex gap-6 text-[11px] font-black uppercase text-slate-500">
+                <li><a href="#inicio" class="hover:text-blue-900">Inicio</a></li>
+                <li><a href="#niveles" class="hover:text-blue-900">Niveles</a></li>
+                <li><a href="#bienestar" class="hover:text-blue-900">Bienestar</a></li>
+                <li><a href="#opiniones" class="hover:text-blue-900">Opiniones</a></li>
+                <li><a href="#contacto" class="hover:text-blue-900">Contacto</a></li>
+            </ul>
+            <div class="flex gap-2">
+                <button onclick="toggleModal(true)"
+                    class="text-[10px] font-black border-2 border-blue-900 px-4 py-2 rounded-lg hover:bg-blue-900 hover:text-white transition">ACCESO</button>
+                <button onclick="document.getElementById('contacto').scrollIntoView()"
+                    class="bg-orange-500 text-white px-4 py-2 rounded-lg text-[10px] font-black shadow-lg hover:bg-orange-600 transition">INSCRIPCIÓN</button>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Hero Slider -->
+    <section id="inicio" class="container mx-auto px-4 mt-6">
+        <div class="relative rounded-[2.5rem] overflow-hidden h-[450px] shadow-2xl">
+            <div class="slide active h-full flex items-center px-12 text-white relative">
+                <img src="https://images.unsplash.com/photo-1523050853063-91589436026e?auto=format&fit=crop&w=1200"
+                    class="absolute inset-0 w-full h-full object-cover -z-10">
+                <div class="absolute inset-0 bg-blue-900/40"></div>
+                <div class="max-w-xl relative">
+                    <h1 class="text-4xl md:text-6xl font-black mb-4 uppercase">Inspiramos, desafiamos y empoderamos</h1>
+                    <p class="mb-8 opacity-90">A ser miembros comprometidos y éticos de una comunidad global con
+                        excelencia académica.</p>
+                    <div class="flex gap-4">
+                        <button class="bg-blue-900 px-6 py-3 rounded-xl font-bold uppercase text-xs">Conocé Más</button>
+                        <button
+                            class="bg-white text-blue-900 px-6 py-3 rounded-xl font-bold uppercase text-xs">Solicitar
+                            Vacante</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Niveles Educativos -->
+    <section id="niveles" class="container mx-auto px-4 py-20">
+        <h3 class="text-2xl font-black text-blue-900 uppercase mb-12 flex items-center gap-4">
+            <span class="w-12 h-1 bg-orange-500"></span> Niveles Educativos
+        </h3>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <!-- Nivel Inicial -->
+            <div class="bg-white p-8 rounded-3xl shadow-xl border-b-4 border-green-500 group">
+                <i class="fas fa-cubes text-4xl text-green-500 mb-6"></i>
+                <h4 class="text-xl font-black mb-4">INICIAL</h4>
+                <p class="text-sm text-slate-500 mb-6">Estimulación temprana y aprendizaje en un ambiente seguro y
+                    afectivo bajo metodologías lúdicas.</p>
+                <button
+                    class="w-full py-3 rounded-xl border-2 border-slate-100 font-black text-[10px] uppercase group-hover:bg-green-500 group-hover:text-white transition">Ver
+                    Más</button>
+            </div>
+            <!-- Primaria -->
+            <div class="bg-white p-8 rounded-3xl shadow-xl border-b-4 border-blue-500 group">
+                <i class="fas fa-book-reader text-4xl text-blue-500 mb-6"></i>
+                <h4 class="text-xl font-black mb-4">PRIMARIO</h4>
+                <p class="text-sm text-slate-500 mb-6">Formación integral con énfasis en valores, conocimiento
+                    lógico-matemático y lectocomprensión.</p>
+                <button
+                    class="w-full py-3 rounded-xl border-2 border-slate-100 font-black text-[10px] uppercase group-hover:bg-blue-500 group-hover:text-white transition">Ver
+                    Más</button>
+            </div>
+            <!-- Secundaria -->
+            <div class="bg-white p-8 rounded-3xl shadow-xl border-b-4 border-purple-500 group">
+                <i class="fas fa-user-graduate text-4xl text-purple-500 mb-6"></i>
+                <h4 class="text-xl font-black mb-4">SECUNDARIO</h4>
+                <p class="text-sm text-slate-500 mb-6">Preparación académica rigurosa para los desafíos de la
+                    universidad y el mundo laboral tecnológico.</p>
+                <button
+                    class="w-full py-3 rounded-xl border-2 border-slate-100 font-black text-[10px] uppercase group-hover:bg-purple-500 group-hover:text-white transition">Ver
+                    Más</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Bienestar Estudiantil (Servicios) -->
+    <section id="bienestar" class="bg-slate-100 py-20">
+        <div class="container mx-auto px-4">
+            <h3 class="text-2xl font-black text-blue-900 uppercase mb-12 text-center">Bienestar Estudiantil</h3>
+            <div class="grid grid-cols-2 md:grid-cols-6 gap-4">
+                <div
+                    class="bg-white p-6 rounded-2xl shadow-sm text-center service-card transition border-2 border-transparent">
+                    <i class="fas fa-volleyball-ball text-blue-500 text-2xl mb-3"></i>
+                    <p class="text-[10px] font-black uppercase">Deportes</p>
+                </div>
+                <div
+                    class="bg-white p-6 rounded-2xl shadow-sm text-center service-card transition border-2 border-transparent">
+                    <i class="fas fa-language text-blue-500 text-2xl mb-3"></i>
+                    <p class="text-[10px] font-black uppercase">Idiomas</p>
+                </div>
+                <div
+                    class="bg-white p-6 rounded-2xl shadow-sm text-center service-card transition border-2 border-transparent">
+                    <i class="fas fa-utensils text-blue-500 text-2xl mb-3"></i>
+                    <p class="text-[10px] font-black uppercase">Comedor</p>
+                </div>
+                <div
+                    class="bg-white p-6 rounded-2xl shadow-sm text-center service-card transition border-2 border-transparent">
+                    <i class="fas fa-medkit text-blue-500 text-2xl mb-3"></i>
+                    <p class="text-[10px] font-black uppercase">Enfermería</p>
+                </div>
+                <div
+                    class="bg-white p-6 rounded-2xl shadow-sm text-center service-card transition border-2 border-transparent">
+                    <i class="fas fa-microscope text-blue-500 text-2xl mb-3"></i>
+                    <p class="text-[10px] font-black uppercase">Laboratorio</p>
+                </div>
+                <div
+                    class="bg-white p-6 rounded-2xl shadow-sm text-center service-card transition border-2 border-transparent">
+                    <i class="fas fa-heartbeat text-blue-500 text-2xl mb-3"></i>
+                    <p class="text-[10px] font-black uppercase">Apoyo</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Opiniones (Criterio Diseño y Contenido) -->
+    <section id="opiniones" class="container mx-auto px-4 py-20">
+        <h3 class="text-2xl font-black text-blue-900 uppercase mb-12">Lo que dicen las Familias</h3>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div class="bg-white p-8 rounded-3xl shadow-lg italic text-slate-600 text-sm">
+                <div class="flex gap-1 mb-4">
+                    <i class="fas fa-star star-active"></i><i class="fas fa-star star-active"></i><i
+                        class="fas fa-star star-active"></i><i class="fas fa-star star-active"></i><i
+                        class="fas fa-star star-active"></i>
+                </div>
+                "Excelente institución, con un equipo humano comprometido y maravillosas instalaciones."
+                <p class="mt-4 font-black text-blue-900 not-italic uppercase text-xs">María López - Madre de Primaria
+                </p>
+            </div>
+            <div class="bg-white p-8 rounded-3xl shadow-lg italic text-slate-600 text-sm">
+                <div class="flex gap-1 mb-4">
+                    <i class="fas fa-star star-active"></i><i class="fas fa-star star-active"></i><i
+                        class="fas fa-star star-active"></i><i class="fas fa-star star-active"></i><i
+                        class="fas fa-star text-slate-200"></i>
+                </div>
+                "Mis hijos están felices y motivados cada día. La propuesta de robótica es increíble."
+                <p class="mt-4 font-black text-blue-900 not-italic uppercase text-xs">Juan Pérez - Padre de Secundaria
+                </p>
+            </div>
+            <div class="bg-white p-8 rounded-3xl shadow-lg italic text-slate-600 text-sm">
+                <div class="flex gap-1 mb-4">
+                    <i class="fas fa-star star-active"></i><i class="fas fa-star star-active"></i><i
+                        class="fas fa-star star-active"></i><i class="fas fa-star star-active"></i><i
+                        class="fas fa-star star-active"></i>
+                </div>
+                "Una educación de calidad que realmente prepara para los desafíos del mundo actual."
+                <p class="mt-4 font-black text-blue-900 not-italic uppercase text-xs">Ana Gómez - Madre de Inicial</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contacto / Admisiones -->
+    <section id="contacto" class="bg-blue-900 py-20 text-white">
+        <div class="container mx-auto px-4 grid grid-cols-1 md:grid-cols-2 gap-16">
+            <div>
+                <h3 class="text-3xl font-black uppercase mb-6">Proceso de Admisión 2027</h3>
+                <p class="opacity-80 mb-8">Completá el formulario y nuestro equipo de admisiones te contactará para
+                    agendar una visita personalizada a nuestras instalaciones.</p>
+                <div class="space-y-4">
+                    <div class="flex items-center gap-4"><i class="fas fa-phone"></i> (362) 123 4567</div>
+                    <div class="flex items-center gap-4"><i class="fas fa-envelope"></i>
+                        info@educarparatransformar.edu.ar</div>
+                    <div class="flex items-center gap-4"><i class="fas fa-clock"></i> Lunes a Viernes: 07:30 a 17:30 hs
+                    </div>
+                </div>
+            </div>
+            <form class="bg-white p-8 rounded-3xl text-slate-800 space-y-4" id="formAdmision">
+                <input type="text" placeholder="Nombre completo"
+                    class="w-full p-3 bg-slate-50 border rounded-xl outline-none focus:border-orange-500">
+                <div class="grid grid-cols-2 gap-4">
+                    <input type="text" placeholder="DNI" class="p-3 bg-slate-50 border rounded-xl outline-none">
+                    <select class="p-3 bg-slate-50 border rounded-xl outline-none">
+                        <option>Nivel Inicial</option>
+                        <option>Nivel Primario</option>
+                        <option>Nivel Secundario</option>
+                    </select>
+                </div>
+                <input type="email" placeholder="Correo electrónico del tutor"
+                    class="w-full p-3 bg-slate-50 border rounded-xl outline-none">
+                <textarea placeholder="Mensaje o consulta adicional"
+                    class="w-full p-3 bg-slate-50 border rounded-xl h-32 outline-none"></textarea>
+                <button type="button" onclick="enviarForm()"
+                    class="w-full bg-orange-500 text-white py-4 rounded-xl font-black uppercase text-xs tracking-widest shadow-lg">Enviar
+                    Solicitud de Vacante</button>
+            </form>
+        </div>
+    </section>
+
+    <!-- Modal de Acceso (Corregido) -->
+    <div id="modalLogin" class="modal">
+        <div class="bg-white p-8 rounded-[2rem] w-full max-w-md shadow-2xl relative">
+            <button onclick="toggleModal(false)" class="absolute top-6 right-6 text-slate-400 hover:text-slate-800"><i
+                    class="fas fa-times"></i></button>
+            <h3 class="text-xl font-black text-blue-900 uppercase mb-6 text-center">Acceso al Campus</h3>
+            <div class="space-y-4">
+                <input type="text" placeholder="Usuario o email"
+                    class="w-full p-4 bg-slate-100 border-none rounded-xl outline-none">
+                <input type="password" placeholder="Contraseña"
+                    class="w-full p-4 bg-slate-100 border-none rounded-xl outline-none">
+                <button
+                    class="w-full bg-blue-900 text-white py-4 rounded-xl font-black uppercase text-xs tracking-widest">Ingresar</button>
+                <p
+                    class="text-[10px] text-center font-bold text-slate-400 uppercase cursor-pointer hover:text-blue-900 transition">
+                    ¿Olvidaste tu contraseña?</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts de Funcionamiento -->
+    <script>
+        // Función de Modal (Solución al error reportado)
+        function toggleModal(show) {
+            const modal = document.getElementById('modalLogin');
+            if (show) {
+                modal.classList.add('active');
+                document.body.style.overflow = 'hidden'; // Bloquear scroll
+            } else {
+                modal.classList.remove('active');
+                document.body.style.overflow = 'auto'; // Habilitar scroll
+            }
+        }
+
+        // Lógica de Formulario
+        function enviarForm() {
+            alert('¡Gracias por tu interés! Tu solicitud ha sido registrada. Nuestro equipo de admisiones se comunicará pronto.');
+            document.getElementById('formAdmision').reset();
+        }
+
+        // Cerrar modal al hacer click fuera del contenido
+        window.onclick = function (event) {
+            const modal = document.getElementById('modalLogin');
+            if (event.target == modal) {
+                toggleModal(false);
+            }
+        }
+    </script>
+
+</body>
+
+</html>
