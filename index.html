@@ -70,11 +70,11 @@
             color: #facc15;
         }
     </style>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 
 <body class="bg-slate-50 text-slate-800">
 
-    <!-- Header -->
     <header class="bg-white border-b sticky top-0 z-[100] shadow-sm">
         <div
             class="bg-blue-900 text-white py-2 px-6 text-[10px] font-bold uppercase tracking-widest hidden md:block text-center">
@@ -107,7 +107,6 @@
         </nav>
     </header>
 
-    <!-- Hero Slider -->
     <section id="inicio" class="container mx-auto px-4 mt-6">
         <div class="relative rounded-[2.5rem] overflow-hidden h-[450px] shadow-2xl">
             <div class="slide active h-full flex items-center px-12 text-white relative">
@@ -129,13 +128,11 @@
         </div>
     </section>
 
-    <!-- Niveles Educativos -->
     <section id="niveles" class="container mx-auto px-4 py-20">
         <h3 class="text-2xl font-black text-blue-900 uppercase mb-12 flex items-center gap-4">
             <span class="w-12 h-1 bg-orange-500"></span> Niveles Educativos
         </h3>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <!-- Nivel Inicial -->
             <div class="bg-white p-8 rounded-3xl shadow-xl border-b-4 border-green-500 group">
                 <i class="fas fa-cubes text-4xl text-green-500 mb-6"></i>
                 <h4 class="text-xl font-black mb-4">INICIAL</h4>
@@ -145,7 +142,6 @@
                     class="w-full py-3 rounded-xl border-2 border-slate-100 font-black text-[10px] uppercase group-hover:bg-green-500 group-hover:text-white transition">Ver
                     Más</button>
             </div>
-            <!-- Primaria -->
             <div class="bg-white p-8 rounded-3xl shadow-xl border-b-4 border-blue-500 group">
                 <i class="fas fa-book-reader text-4xl text-blue-500 mb-6"></i>
                 <h4 class="text-xl font-black mb-4">PRIMARIO</h4>
@@ -155,7 +151,6 @@
                     class="w-full py-3 rounded-xl border-2 border-slate-100 font-black text-[10px] uppercase group-hover:bg-blue-500 group-hover:text-white transition">Ver
                     Más</button>
             </div>
-            <!-- Secundaria -->
             <div class="bg-white p-8 rounded-3xl shadow-xl border-b-4 border-purple-500 group">
                 <i class="fas fa-user-graduate text-4xl text-purple-500 mb-6"></i>
                 <h4 class="text-xl font-black mb-4">SECUNDARIO</h4>
@@ -168,7 +163,6 @@
         </div>
     </section>
 
-    <!-- Bienestar Estudiantil (Servicios) -->
     <section id="bienestar" class="bg-slate-100 py-20">
         <div class="container mx-auto px-4">
             <h3 class="text-2xl font-black text-blue-900 uppercase mb-12 text-center">Bienestar Estudiantil</h3>
@@ -207,7 +201,6 @@
         </div>
     </section>
 
-    <!-- Opiniones (Criterio Diseño y Contenido) -->
     <section id="opiniones" class="container mx-auto px-4 py-20">
         <h3 class="text-2xl font-black text-blue-900 uppercase mb-12">Lo que dicen las Familias</h3>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -243,7 +236,6 @@
         </div>
     </section>
 
-    <!-- Contacto / Admisiones -->
     <section id="contacto" class="bg-blue-900 py-20 text-white">
         <div class="container mx-auto px-4 grid grid-cols-1 md:grid-cols-2 gap-16">
             <div>
@@ -280,7 +272,6 @@
         </div>
     </section>
 
-    <!-- Modal de Acceso (Corregido) -->
     <div id="modalLogin" class="modal">
         <div class="bg-white p-8 rounded-[2rem] w-full max-w-md shadow-2xl relative">
             <button onclick="toggleModal(false)" class="absolute top-6 right-6 text-slate-400 hover:text-slate-800"><i
@@ -300,24 +291,68 @@
         </div>
     </div>
 
-    <!-- Scripts de Funcionamiento -->
     <script>
-        // Función de Modal (Solución al error reportado)
+        // 1. Inicializar Supabase (Corregido: URL limpia y cambio de nombre de variable)
+        const supabaseUrl = 'https://anzkzcasszqqstwhamfm.supabase.co';
+        const supabaseKey = 'sb_publishable_yCBVC5kXaCDQSkQtfJhgiA_qC7c-q40';
+        const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+
+        // Función de Modal
         function toggleModal(show) {
             const modal = document.getElementById('modalLogin');
             if (show) {
                 modal.classList.add('active');
-                document.body.style.overflow = 'hidden'; // Bloquear scroll
+                document.body.style.overflow = 'hidden';
             } else {
                 modal.classList.remove('active');
-                document.body.style.overflow = 'auto'; // Habilitar scroll
+                document.body.style.overflow = 'auto';
             }
         }
 
-        // Lógica de Formulario
-        function enviarForm() {
-            alert('¡Gracias por tu interés! Tu solicitud ha sido registrada. Nuestro equipo de admisiones se comunicará pronto.');
-            document.getElementById('formAdmision').reset();
+        // 2. Lógica de Formulario conectada a Supabase
+        async function enviarForm() {
+            // Capturar los valores de los inputs usando selectores precisos
+            const inputs = document.getElementById('formAdmision').querySelectorAll('input, select, textarea');
+            const nombre = inputs[0].value;
+            const dni = inputs[1].value;
+            const nivel = inputs[2].value;
+            const email = inputs[3].value;
+            const mensaje = inputs[4].value;
+
+            // Validación de campos obligatorios en el cliente
+            if (!nombre || !dni || !email) {
+                alert('Por favor, completa los campos obligatorios (Nombre, DNI, Email).');
+                return;
+            }
+
+            // Deshabilitar botón temporalmente para evitar doble clic
+            const btnSubmit = document.querySelector('#formAdmision button');
+            const textoOriginal = btnSubmit.innerText;
+            btnSubmit.innerText = 'ENVIANDO...';
+            btnSubmit.disabled = true;
+
+            try {
+                // Operación asíncrona: Insertar datos usando la variable cliente corregida
+                const { data, error } = await supabaseClient
+                    .from('inscripciones')
+                    .insert([
+                        { nombre: nombre, dni: dni, nivel: nivel, email: email, mensaje: mensaje }
+                    ]);
+
+                if (error) throw error;
+
+                // Feedback visual de éxito
+                alert('¡Conexión Exitosa con Supabase! Tu solicitud ha sido registrada en la base de datos.');
+                document.getElementById('formAdmision').reset();
+
+            } catch (error) {
+                console.error("Error al insertar en Supabase:", error);
+                alert('Hubo un error al enviar la solicitud. Verifica que la tabla "inscripciones" exista y tenga el RLS desactivado.');
+            } finally {
+                // Restaurar el botón al estado original
+                btnSubmit.innerText = textoOriginal;
+                btnSubmit.disabled = false;
+            }
         }
 
         // Cerrar modal al hacer click fuera del contenido
