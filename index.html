@@ -274,19 +274,24 @@
 
     <div id="modalLogin" class="modal">
         <div class="bg-white p-8 rounded-[2rem] w-full max-w-md shadow-2xl relative">
-            <button onclick="toggleModal(false)" class="absolute top-6 right-6 text-slate-400 hover:text-slate-800"><i
-                    class="fas fa-times"></i></button>
+            <button onclick="toggleModal(false)" class="absolute top-6 right-6 text-slate-400 hover:text-slate-800">
+                <i class="fas fa-times"></i>
+            </button>
             <h3 class="text-xl font-black text-blue-900 uppercase mb-6 text-center">Acceso al Campus</h3>
             <div class="space-y-4">
-                <input type="text" placeholder="Usuario o email"
+                <input type="email" id="loginEmail" placeholder="Usuario o email"
                     class="w-full p-4 bg-slate-100 border-none rounded-xl outline-none">
-                <input type="password" placeholder="Contraseña"
+
+                <input type="password" id="loginPassword" placeholder="Contraseña"
                     class="w-full p-4 bg-slate-100 border-none rounded-xl outline-none">
-                <button
+
+                <button onclick="iniciarSesion()"
                     class="w-full bg-blue-900 text-white py-4 rounded-xl font-black uppercase text-xs tracking-widest">Ingresar</button>
+
                 <p
                     class="text-[10px] text-center font-bold text-slate-400 uppercase cursor-pointer hover:text-blue-900 transition">
-                    ¿Olvidaste tu contraseña?</p>
+                    ¿Olvidaste tu contraseña?
+                </p>
             </div>
         </div>
     </div>
@@ -352,6 +357,47 @@
                 // Restaurar el botón al estado original
                 btnSubmit.innerText = textoOriginal;
                 btnSubmit.disabled = false;
+            }
+        }
+        // 3. Lógica de Autenticación (Login) con Supabase Auth
+        async function iniciarSesion() {
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+
+            // Validación en el lado del cliente
+            if (!email || !password) {
+                alert('Por favor, ingresa tu correo y contraseña.');
+                return;
+            }
+
+            try {
+                // Petición asíncrona al módulo de Auth de Supabase
+                const { data, error } = await supabaseClient.auth.signInWithPassword({
+                    email: email,
+                    password: password,
+                });
+
+                if (error) throw error;
+
+                // Si la conexión es exitosa
+                alert('¡Inicio de sesión correcto! Bienvenido al Campus de Educar para Transformar.');
+
+                // Limpiamos los inputs y cerramos el modal
+                document.getElementById('loginEmail').value = '';
+                document.getElementById('loginPassword').value = '';
+                toggleModal(false);
+
+                // Registro técnico en consola para demostrar el token de sesión
+                console.log("Sesión iniciada con éxito. Datos del usuario:", data.user);
+
+            } catch (error) {
+                console.error("Error de autenticación:", error.message);
+                // Traducimos los errores más comunes para el usuario
+                if (error.message === "Invalid login credentials") {
+                    alert('Credenciales inválidas. Verifica el correo o la contraseña.');
+                } else {
+                    alert('Error al intentar ingresar: ' + error.message);
+                }
             }
         }
 
