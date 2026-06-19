@@ -290,10 +290,50 @@
                         class="w-full p-4 bg-slate-100 border-none rounded-xl outline-none">
                     <button onclick="iniciarSesion()"
                         class="w-full bg-blue-900 text-white py-4 rounded-xl font-black uppercase text-xs tracking-widest">Ingresar</button>
-                    <p
+                    <p onclick="abrirOlvidePassword()"
                         class="text-[10px] text-center font-bold text-slate-400 uppercase cursor-pointer hover:text-blue-900 transition">
                         ¿Olvidaste tu contraseña?</p>
                 </div>
+            </div>
+        </div>
+        <div id="modalOlvidePassword" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-[110]">
+            <div class="bg-white p-8 rounded-[2rem] w-full max-w-md shadow-2xl relative mx-4">
+                <button onclick="toggleModalOlvide(false)"
+                    class="absolute top-6 right-6 text-slate-400 hover:text-slate-800">
+                    <i class="fas fa-times"></i>
+                </button>
+
+                <h3 class="text-xl font-black text-blue-900 uppercase mb-4 text-center">Recuperar Contraseña</h3>
+                <p class="text-xs text-slate-500 text-center mb-6">Ingresa tu correo electrónico registrado y te
+                    enviaremos las instrucciones para restablecer tu contraseña.</p>
+
+                <div class="space-y-4">
+                    <input type="email" id="olvideEmail" placeholder="Tu correo electrónico"
+                        class="w-full p-4 bg-slate-100 border-none rounded-xl outline-none text-sm text-slate-800">
+                    <button onclick="procesarOlvidePassword()"
+                        class="w-full bg-blue-900 text-white py-4 rounded-xl font-black uppercase text-xs tracking-widest hover:bg-blue-800 transition">
+                        Confirmar Correo
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="modalExitoRecuperacion"
+            class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-[120]">
+            <div class="bg-white p-8 rounded-[2rem] w-full max-w-md shadow-2xl relative mx-4 text-center">
+                <div
+                    class="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl">
+                    <i class="fas fa-paper-plane"></i>
+                </div>
+
+                <h3 class="text-xl font-black text-slate-800 uppercase mb-2">¡Correo Enviado!</h3>
+                <p class="text-xs text-slate-500 mb-6">Hemos enviado un enlace de recuperación a tu casilla de correo.
+                    Por favor, revisa tu bandeja de entrada y la carpeta de spam.</p>
+
+                <button onclick="toggleModalExito(false)"
+                    class="w-full bg-emerald-600 text-white py-4 rounded-xl font-black uppercase text-xs tracking-widest hover:bg-emerald-500 transition">
+                    Entendido
+                </button>
             </div>
         </div>
     </div>
@@ -544,6 +584,51 @@
                 alert('Error al intentar ingresar: ' + error.message);
             }
         }
+    }
+    // ==========================================
+    // MÓDULO: RECOVERY PASSWORD (OLVIDÉ MI CONTRASEÑA)
+    // ==========================================
+
+    // 1. Se ejecuta cuando el usuario hace clic en "¿Olvidaste tu contraseña?"
+    function abrirOlvidePassword() {
+        toggleModal(false);         // Cierra el modal de Login original
+        toggleModalOlvide(true);    // Abre la nueva ventana para ingresar el correo
+    }
+
+    // 2. Controla la visualización de la ventana del formulario de correo
+    function toggleModalOlvide(mostrar) {
+        const modal = document.getElementById('modalOlvidePassword');
+        if (mostrar) {
+            modal.classList.remove('hidden');
+            document.getElementById('olvideEmail').value = ''; // Limpia el campo por seguridad al abrir
+        } else {
+            modal.classList.add('hidden');
+        }
+    }
+
+    // 3. Controla la visualización de la ventana de Éxito ficticio
+    function toggleModalExito(mostrar) {
+        const modal = document.getElementById('modalExitoRecuperacion');
+        if (mostrar) {
+            modal.classList.remove('hidden');
+        } else {
+            modal.classList.add('hidden');
+        }
+    }
+
+    // 4. Se ejecuta al hacer clic en "Confirmar Correo"
+    function procesarOlvidePassword() {
+        const emailInput = document.getElementById('olvideEmail').value.trim();
+
+        // Validación de campo vacío
+        if (emailInput === "") {
+            alert("Por favor, introduce tu dirección de correo electrónico.");
+            return;
+        }
+
+        // Simulación del flujo ficticio:
+        toggleModalOlvide(false); // Oculta la ventana del formulario
+        toggleModalExito(true);   // Muestra la ventana que dice que el correo fue enviado
     }
 
     // ========================================================
