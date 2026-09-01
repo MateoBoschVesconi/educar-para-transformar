@@ -7,70 +7,11 @@
     <title>Educar para Transformar | Proyecto Final</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&family=Open+Sans:wght@400;600&display=swap');
-
-        :root {
-            --primary: #1e3a8a;
-            --secondary: #f97316;
-        }
-
-        body {
-            font-family: 'Open Sans', sans-serif;
-            scroll-behavior: smooth;
-        }
-
-        h1,
-        h2,
-        h3,
-        h4,
-        .font-heading {
-            font-family: 'Montserrat', sans-serif;
-        }
-
-        .slide {
-            display: none;
-        }
-
-        .slide.active {
-            display: flex;
-            animation: fadeIn 0.8s ease-in-out;
-        }
-
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-            }
-
-            to {
-                opacity: 1;
-            }
-        }
-
-        .modal {
-            display: none;
-            position: fixed;
-            inset: 0;
-            background: rgba(0, 0, 0, 0.5);
-            z-index: 1000;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .modal.active {
-            display: flex;
-        }
-
-        .service-card:hover {
-            transform: translateY(-5px);
-            border-color: var(--secondary);
-        }
-
-        .star-active {
-            color: #facc15;
-        }
-    </style>
+    <!-- Modularización: estilos propios separados en su propio archivo -->
+    <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Credenciales de Supabase: se cargan desde un archivo externo que NO se sube al repositorio (ver config.js / .gitignore) -->
+    <script src="config.js"></script>
 </head>
 
 <body class="bg-slate-50 text-slate-800">
@@ -256,19 +197,26 @@
                     </div>
                 </div>
                 <form class="bg-white p-8 rounded-3xl text-slate-800 space-y-4" id="formAdmision">
-                    <input type="text" placeholder="Nombre completo"
+                    <input type="text" id="admisionNombre" placeholder="Nombre completo"
                         class="w-full p-3 bg-slate-50 border rounded-xl outline-none focus:border-orange-500">
                     <div class="grid grid-cols-2 gap-4">
-                        <input type="text" placeholder="DNI" class="p-3 bg-slate-50 border rounded-xl outline-none">
-                        <select class="p-3 bg-slate-50 border rounded-xl outline-none">
+                        <div>
+                            <input type="text" id="admisionDNI" placeholder="DNI" inputmode="numeric"
+                                class="w-full p-3 bg-slate-50 border rounded-xl outline-none">
+                            <p id="admisionDNIError" class="field-error-msg"></p>
+                        </div>
+                        <select id="admisionNivel" class="p-3 bg-slate-50 border rounded-xl outline-none h-fit">
                             <option>Nivel Inicial</option>
                             <option>Nivel Primario</option>
                             <option>Nivel Secundario</option>
                         </select>
                     </div>
-                    <input type="email" placeholder="Correo electrónico del tutor"
-                        class="w-full p-3 bg-slate-50 border rounded-xl outline-none">
-                    <textarea placeholder="Mensaje o consulta adicional"
+                    <div>
+                        <input type="email" id="admisionEmail" placeholder="Correo electrónico del tutor"
+                            class="w-full p-3 bg-slate-50 border rounded-xl outline-none">
+                        <p id="admisionEmailError" class="field-error-msg"></p>
+                    </div>
+                    <textarea id="admisionMensaje" placeholder="Mensaje o consulta adicional"
                         class="w-full p-3 bg-slate-50 border rounded-xl h-32 outline-none"></textarea>
                     <button type="button" onclick="enviarForm()"
                         class="w-full bg-orange-500 text-white py-4 rounded-xl font-black uppercase text-xs tracking-widest shadow-lg">Enviar
@@ -461,286 +409,11 @@
         </main>
     </div>
 
-</body>
+    <!-- Contenedor de notificaciones (toasts) -->
+    <div id="toastContainer"></div>
 
-
-<script>
-    // 1. Inicializar Supabase (Mantenemos tus credenciales reales)
-    const supabaseUrl = 'https://anzkzcasszqqstwhamfm.supabase.co';
-    const supabaseKey = 'sb_publishable_yCBVC5kXaCDQSkQtfJhgiA_qC7c-q40';
-    const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
-
-    // Función de Modal (Mantenemos tu lógica intacta con la clase 'active')
-    function toggleModal(show) {
-        const modal = document.getElementById('modalLogin');
-        if (show) {
-            modal.classList.add('active');
-            document.body.style.overflow = 'hidden';
-        } else {
-            modal.classList.remove('active');
-            document.body.style.overflow = 'auto';
-        }
-    }
-
-    // 2. Lógica de Formulario conectada a Supabase (Mantenemos tu función intacta)
-    async function enviarForm() {
-        const inputs = document.getElementById('formAdmision').querySelectorAll('input, select, textarea');
-        const nombre = inputs[0].value;
-        const dni = inputs[1].value;
-        const nivel = inputs[2].value;
-        const email = inputs[3].value;
-        const mensaje = inputs[4].value;
-
-        if (!nombre || !dni || !email) {
-            alert('Por favor, completa los campos obligatorios (Nombre, DNI, Email).');
-            return;
-        }
-
-        const btnSubmit = document.querySelector('#formAdmision button');
-        const textoOriginal = btnSubmit.innerText;
-        btnSubmit.innerText = 'ENVIANDO...';
-        btnSubmit.disabled = true;
-
-        try {
-            const { data, error } = await supabaseClient
-                .from('inscripciones')
-                .insert([
-                    { nombre: nombre, dni: dni, nivel: nivel, email: email, mensaje: mensaje }
-                ]);
-
-            if (error) throw error;
-
-            alert('¡Conexión Exitosa con Supabase! Tu solicitud ha sido registrada en la base de datos.');
-            document.getElementById('formAdmision').reset();
-
-        } catch (error) {
-            console.error("Error al insertar en Supabase:", error);
-            alert('Hubo un error al enviar la solicitud. Verifica que la tabla "inscripciones" exista y tenga el RLS desactivado.');
-        } finally {
-            btnSubmit.innerText = textoOriginal;
-            btnSubmit.disabled = false;
-        }
-    }
-
-    // ========================================================
-    // NUEVO: 3. Lógica de Cambio de Vistas (SPA)
-    // Oculta la web principal y muestra el panel o viceversa
-    // ========================================================
-    function gestionarVistas(usuario) {
-        const vistaLanding = document.getElementById('vistaLanding');
-        const vistaPanel = document.getElementById('vistaPanel');
-
-        if (usuario) {
-            // Si el usuario inició sesión: ocultamos la web, mostramos el panel
-            if (vistaLanding) vistaLanding.classList.add('hidden');
-            if (vistaPanel) vistaPanel.classList.remove('hidden');
-
-            // Insertamos dinámicamente sus datos en la interfaz
-            const emailElement = document.getElementById('panelUserEmail');
-            const avatarElement = document.getElementById('userAvatarInitials');
-
-            if (emailElement) emailElement.innerText = usuario.email;
-            if (avatarElement) avatarElement.innerText = usuario.email.charAt(0).toUpperCase();
-        } else {
-            // Si no hay usuario (o cerró sesión): mostramos la web, ocultamos el panel
-            if (vistaLanding) vistaLanding.classList.remove('hidden');
-            if (vistaPanel) vistaPanel.classList.add('hidden');
-        }
-    }
-
-    // 4. Lógica de Autenticación (Login) -> MODIFICADA
-    async function iniciarSesion() {
-        const email = document.getElementById('loginEmail').value;
-        const password = document.getElementById('loginPassword').value;
-
-        if (!email || !password) {
-            alert('Por favor, ingresa tu correo y contraseña.');
-            return;
-        }
-
-        try {
-            const { data, error } = await supabaseClient.auth.signInWithPassword({
-                email: email,
-                password: password,
-            });
-
-            if (error) throw error;
-
-            alert('¡Inicio de sesión correcto! Bienvenido al Campus de Educar para Transformar.');
-
-            // Limpiamos los inputs y cerramos el modal
-            document.getElementById('loginEmail').value = '';
-            document.getElementById('loginPassword').value = '';
-            toggleModal(false);
-
-            // MODIFICACIÓN AQUÍ: Activamos automáticamente la vista del panel
-            gestionarVistas(data.user);
-
-        } catch (error) {
-            console.error("Error de autenticación:", error.message);
-            if (error.message === "Invalid login credentials") {
-                alert('Credenciales inválidas. Verifica el correo o la contraseña.');
-            } else {
-                alert('Error al intentar ingresar: ' + error.message);
-            }
-        }
-    }
-    // ==========================================
-    // MÓDULO: RECOVERY PASSWORD (OLVIDÉ MI CONTRASEÑA)
-    // ==========================================
-
-    // 1. Se ejecuta cuando el usuario hace clic en "¿Olvidaste tu contraseña?"
-    function abrirOlvidePassword() {
-        toggleModal(false);         // Cierra el modal de Login original
-        toggleModalOlvide(true);    // Abre la nueva ventana para ingresar el correo
-    }
-
-    // 2. Controla la visualización de la ventana del formulario de correo
-    function toggleModalOlvide(mostrar) {
-        const modal = document.getElementById('modalOlvidePassword');
-        if (mostrar) {
-            modal.classList.remove('hidden');
-            document.getElementById('olvideEmail').value = ''; // Limpia el campo por seguridad al abrir
-        } else {
-            modal.classList.add('hidden');
-        }
-    }
-
-    // 3. Controla la visualización de la ventana de Éxito ficticio
-    function toggleModalExito(mostrar) {
-        const modal = document.getElementById('modalExitoRecuperacion');
-        if (mostrar) {
-            modal.classList.remove('hidden');
-        } else {
-            modal.classList.add('hidden');
-        }
-    }
-
-    // 4. Se ejecuta al hacer clic en "Confirmar Correo"
-    function procesarOlvidePassword() {
-        const emailInput = document.getElementById('olvideEmail').value.trim();
-
-        // Validación de campo vacío
-        if (emailInput === "") {
-            alert("Por favor, introduce tu dirección de correo electrónico.");
-            return;
-        }
-
-        // Simulación del flujo ficticio:
-        toggleModalOlvide(false); // Oculta la ventana del formulario
-        toggleModalExito(true);   // Muestra la ventana que dice que el correo fue enviado
-    }
-
-    // ========================================================
-    // NUEVO: 5. Función para Cerrar Sesión
-    // ========================================================
-    async function cerrarSesion() {
-        try {
-            const { error } = await supabaseClient.auth.signOut();
-            if (error) throw error;
-
-            // Devolvemos al usuario a la Landing Page pública
-            gestionarVistas(null);
-            alert('Sesión cerrada correctamente.');
-        } catch (error) {
-            alert('Error al cerrar sesión: ' + error.message);
-        }
-    }
-
-    // ========================================================
-    // NUEVO: 6. Persistencia (Comprobar sesión activa al cargar la página)
-    // Evita que el panel se cierre si el alumno refresca con F5
-    // ========================================================
-    window.addEventListener('DOMContentLoaded', async () => {
-        const { data: { session } } = await supabaseClient.auth.getSession();
-
-        if (session) {
-            // Si ya estaba logueado previamente, directo al panel
-            gestionarVistas(session.user);
-        } else {
-            // Si no, se queda en la página de inicio
-            gestionarVistas(null);
-        }
-    });
-
-
-    // Cerrar modal al hacer click fuera del contenido (Mantenemos tu función)
-    window.onclick = function (event) {
-        const modal = document.getElementById('modalLogin');
-        if (event.target == modal) {
-            toggleModal(false);
-        }
-    }
-    // ==========================================
-    // LÓGICA DE CONTROL DE PESTAÑAS (TABS)
-    // ==========================================
-    function cambiarTab(tabSeleccionada) {
-        // 1. Definimos las pestañas existentes en nuestro panel
-        const tabs = ['inicio', 'certificados'];
-
-        // 2. Recorremos el arreglo para ocultar o mostrar las secciones y botones
-        tabs.forEach(tab => {
-            // Formamos los IDs de los contenedores HTML correspondientes
-            const contenedor = document.getElementById(`tab${tab.charAt(0).toUpperCase() + tab.slice(1)}`);
-            const boton = document.getElementById(`btn-tab-${tab}`);
-
-            if (tab === tabSeleccionada) {
-                // Mostramos la pestaña seleccionada quitando la clase 'hidden'
-                if (contenedor) contenedor.classList.remove('hidden');
-
-                // Opcional: Cambiamos el estilo del botón activo para que resalte
-                if (boton) {
-                    boton.classList.add('bg-blue-800', 'text-white');
-                    boton.classList.remove('text-blue-200', 'hover:bg-blue-800');
-                }
-            } else {
-                // Ocultamos las demás pestañas agregando 'hidden'
-                if (contenedor) contenedor.classList.add('hidden');
-
-                // Restauramos el estilo original de los botones inactivos
-                if (boton) {
-                    boton.classList.remove('bg-blue-800', 'text-white');
-                    boton.classList.add('text-blue-200', 'hover:bg-blue-800');
-                }
-            }
-        });
-    }
-
-    // ==========================================
-    // LÓGICA DEL MÓDULO DE CERTIFICADOS (RF-1)
-    // ==========================================
-    function procesarCertificado() {
-        const inputDoc = document.getElementById('certDocumento').value.trim();
-        const resultadoDiv = document.getElementById('resultadoCertificado');
-
-        // Validación Paso 4 y 5: Verificar que no esté vacío
-        if (inputDoc === "") {
-            alert("Por favor, ingrese su número de documento o legajo.");
-            return;
-        }
-
-        // Simulación de Validación de Estado (Paso 6 de la secuencia normal / Excepciones)
-        // En un entorno real, aquí se consultaría a la Base de Datos o API del colegio
-        const alumnoEsRegular = true; // Cambiar a 'false' para probar el flujo de excepción
-
-        if (alumnoEsRegular) {
-            // Secuencia Normal: Mostramos el bloque de éxito con el botón de descarga
-            resultadoDiv.classList.remove('hidden');
-        } else {
-            // Excepción: El alumno no cumple con los requisitos
-            resultadoDiv.classList.add('hidden');
-            alert("Error: El alumno no posee estado regular en el sistema. No se puede emitir el certificado.");
-        }
-    }
-
-    function descargarPDF() {
-        // Simulación del Paso 8 y 9: Notificación de descarga/impresión
-        alert("Generando documento PDF con firma digital institucional...\nSu descarga comenzará en breve.");
-        // Aquí puedes integrar librerías como jsPDF o window.print() si deseas imprimir la pantalla
-    }
-
-</script>
-
+    <!-- Modularización: toda la lógica JS vive en app.js -->
+    <script src="app.js" defer></script>
 </body>
 
 </html>

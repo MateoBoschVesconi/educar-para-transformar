@@ -1,0 +1,138 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&family=Open+Sans:wght@400;600&display=swap');
+
+:root {
+    --primary: #1e3a8a;
+    --secondary: #f97316;
+}
+
+body {
+    font-family: 'Open Sans', sans-serif;
+    scroll-behavior: smooth;
+}
+
+h1,
+h2,
+h3,
+h4,
+.font-heading {
+    font-family: 'Montserrat', sans-serif;
+}
+
+.slide {
+    display: none;
+}
+
+.slide.active {
+    display: flex;
+    animation: fadeIn 0.8s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+.modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal.active {
+    display: flex;
+}
+
+.service-card:hover {
+    transform: translateY(-5px);
+    border-color: var(--secondary);
+}
+
+.star-active {
+    color: #facc15;
+}
+
+/* ==========================================
+   SISTEMA DE NOTIFICACIONES (TOASTS)
+   Reemplaza el uso de alert() nativo (punto 4)
+   ========================================== */
+#toastContainer {
+    position: fixed;
+    top: 1.25rem;
+    right: 1.25rem;
+    z-index: 2000;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    width: min(340px, calc(100vw - 2.5rem));
+}
+
+.toast {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+    padding: 0.9rem 1rem;
+    border-radius: 0.9rem;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: white;
+    opacity: 0;
+    transform: translateX(20px);
+    transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.toast.show {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+.toast-success {
+    background: #16a34a;
+}
+
+.toast-error {
+    background: #dc2626;
+}
+
+.toast-info {
+    background: #1e3a8a;
+}
+
+.toast-close {
+    margin-left: auto;
+    cursor: pointer;
+    opacity: 0.8;
+}
+
+.toast-close:hover {
+    opacity: 1;
+}
+
+/* ==========================================
+   ESTADOS DE ERROR EN FORMULARIOS (punto 5)
+   ========================================== */
+.input-error {
+    border-color: #dc2626 !important;
+    background-color: #fef2f2 !important;
+}
+
+.field-error-msg {
+    color: #dc2626;
+    font-size: 10px;
+    font-weight: 700;
+    margin-top: -0.5rem;
+    display: none;
+}
+
+.field-error-msg.show {
+    display: block;
+}
