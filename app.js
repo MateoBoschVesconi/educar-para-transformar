@@ -1,9 +1,7 @@
 // ==========================================================
 // app.js — Lógica de la aplicación "Educar para Transformar"
-// Separado de index.html para modularizar el proyecto (punto 2)
 // ==========================================================
 
-// 1. Inicializar Supabase
 // Las credenciales se leen desde window.SUPABASE_CONFIG,
 // definido en config.js (archivo excluido del repositorio vía .gitignore).
 if (!window.SUPABASE_CONFIG) {
@@ -15,7 +13,6 @@ const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
 
 // ==========================================================
 // MÓDULO: NOTIFICACIONES (TOASTS)
-// Reemplaza el uso exclusivo de alert() nativo (punto 4)
 // ==========================================================
 function obtenerToastContainer() {
     let container = document.getElementById('toastContainer');
@@ -31,11 +28,7 @@ function obtenerToastContainer() {
 function mostrarToast(mensaje, tipo = 'info', duracionMs = 4500) {
     const container = obtenerToastContainer();
 
-    const iconos = {
-        success: '✅',
-        error: '⚠️',
-        info: 'ℹ️'
-    };
+    const iconos = { success: '✅', error: '⚠️', info: 'ℹ️' };
 
     const toast = document.createElement('div');
     toast.className = `toast toast-${tipo}`;
@@ -46,7 +39,8 @@ function mostrarToast(mensaje, tipo = 'info', duracionMs = 4500) {
     `;
 
     container.appendChild(toast);
-    // Forzamos reflow para que la animación de entrada se dispare
+    // requestAnimationFrame fuerza un reflow: sin esto, el navegador puede
+    // aplicar la clase "show" antes del primer render y la transición CSS no se dispara.
     requestAnimationFrame(() => toast.classList.add('show'));
 
     const cerrar = () => {
@@ -60,10 +54,9 @@ function mostrarToast(mensaje, tipo = 'info', duracionMs = 4500) {
 
 
 // ==========================================================
-// MÓDULO: VALIDACIONES DE FORMULARIO (punto 5)
+// MÓDULO: VALIDACIONES DE FORMULARIO
 // ==========================================================
 function validarEmail(email) {
-    // Formato estándar de email
     const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return regex.test(email.trim());
 }
@@ -91,116 +84,153 @@ function limpiarErrorCampo(inputEl, errorEl) {
 }
 
 
-// Función de Modal
-function toggleModal(show) {
-    const modal = document.getElementById('modalLogin');
-    if (show) {
-        modal.classList.add('active');
-        document.body.style.overflow = 'hidden';
-    } else {
-        modal.classList.remove('active');
-        document.body.style.overflow = 'auto';
+// ==========================================================
+// HELPERS REUTILIZABLES (evitan duplicación entre módulos)
+// ==========================================================
+
+// Antes, enviarForm(), procesarOlvidePassword() y procesarCertificado()
+// repetían el mismo patrón: guardar el texto del botón, deshabilitarlo,
+// ejecutar la tarea y restaurarlo en un "finally". Se unificó acá.
+async function ejecutarConBotonEnCarga(boton, textoCarga, tareaAsync) {
+    const textoOriginal = boton.innerText;
+    boton.innerText = textoCarga;
+    boton.disabled = true;
+    try {
+        return await tareaAsync();
+    } finally {
+        boton.innerText = textoOriginal;
+        boton.disabled = false;
     }
 }
 
-// ==========================================================
-// 2. Lógica de Formulario de Admisión conectada a Supabase
-//    Ahora con validación robusta de DNI/email y manejo de
-//    duplicados (punto 5), y notificaciones no bloqueantes (punto 4)
-// ==========================================================
-async function enviarForm() {
-    const form = document.getElementById('formAdmision');
-    const nombreInput = document.getElementById('admisionNombre');
-    const dniInput = document.getElementById('admisionDNI');
-    const nivelInput = document.getElementById('admisionNivel');
-    const emailInput = document.getElementById('admisionEmail');
-    const mensajeInput = document.getElementById('admisionMensaje');
+// Antes, toggleModalOlvide() y toggleModalExito() repetían la misma lógica
+// de agregar/quitar la clase "hidden" según un booleano.
+function alternarVisibilidadPorClase(idElemento, mostrar, clase = 'hidden') {
+    const elemento = document.getElementById(idElemento);
+    if (!elemento) return;
+    elemento.classList.toggle(clase, !mostrar);
+}
 
+function notificarDniDuplicado(dniInput, dniErrorEl) {
+    mostrarErrorCampo(dniInput, dniErrorEl, 'Ya existe una solicitud registrada con este DNI.');
+    mostrarToast('Este DNI ya tiene una solicitud de inscripción registrada.', 'error');
+}
+
+
+function toggleModal(mostrar) {
+    const modal = document.getElementById('modalLogin');
+    modal.classList.toggle('active', mostrar);
+    document.body.style.overflow = mostrar ? 'hidden' : 'auto';
+}
+
+// ==========================================================
+// FORMULARIO DE ADMISIÓN
+// Dividido en funciones con una sola responsabilidad cada una,
+// en vez de una única función que leía, validaba, consultaba
+// duplicados, insertaba y notificaba todo junto.
+// ==========================================================
+
+function obtenerDatosFormularioAdmision() {
+    return {
+        nombre: document.getElementById('admisionNombre').value.trim(),
+        dni: document.getElementById('admisionDNI').value.trim(),
+        nivel: document.getElementById('admisionNivel').value,
+        email: document.getElementById('admisionEmail').value.trim(),
+        mensaje: document.getElementById('admisionMensaje').value.trim(),
+    };
+}
+
+// Valida los datos y marca los campos con error en la UI.
+// Devuelve true si el formulario puede enviarse.
+function validarFormularioAdmision({ nombre, dni, email }) {
+    const dniInput = document.getElementById('admisionDNI');
+    const emailInput = document.getElementById('admisionEmail');
     const dniErrorEl = document.getElementById('admisionDNIError');
     const emailErrorEl = document.getElementById('admisionEmailError');
-
-    const nombre = nombreInput.value.trim();
-    const dni = dniInput.value.trim();
-    const nivel = nivelInput.value;
-    const email = emailInput.value.trim();
-    const mensaje = mensajeInput.value.trim();
 
     limpiarErrorCampo(dniInput, dniErrorEl);
     limpiarErrorCampo(emailInput, emailErrorEl);
 
-    let formularioValido = true;
+    let esValido = true;
 
     if (!nombre) {
         mostrarToast('Por favor, completá el nombre completo.', 'error');
-        formularioValido = false;
+        esValido = false;
     }
-
     if (!validarDNI(dni)) {
         mostrarErrorCampo(dniInput, dniErrorEl, 'Ingresá un DNI válido (7 u 8 dígitos, sin puntos).');
-        formularioValido = false;
+        esValido = false;
     }
-
     if (!validarEmail(email)) {
         mostrarErrorCampo(emailInput, emailErrorEl, 'Ingresá un correo electrónico con formato válido.');
-        formularioValido = false;
+        esValido = false;
     }
 
-    if (!formularioValido) {
+    return esValido;
+}
+
+async function existeInscripcionConDNI(dni) {
+    const { data, error } = await supabaseClient
+        .from('inscripciones')
+        .select('id')
+        .eq('dni', dni)
+        .limit(1);
+
+    if (error) throw error;
+    return data && data.length > 0;
+}
+
+// Inserta la inscripción. Devuelve 'ok' o 'duplicado' (o relanza el error).
+async function registrarInscripcion(datosFormulario) {
+    const { error } = await supabaseClient.from('inscripciones').insert([datosFormulario]);
+
+    if (error) {
+        // Código 23505 = violación de restricción UNIQUE (respaldo a nivel de base de datos)
+        if (error.code === '23505') return 'duplicado';
+        throw error;
+    }
+    return 'ok';
+}
+
+async function enviarForm() {
+    const form = document.getElementById('formAdmision');
+    const dniInput = document.getElementById('admisionDNI');
+    const dniErrorEl = document.getElementById('admisionDNIError');
+    const datosFormulario = obtenerDatosFormularioAdmision();
+
+    if (!validarFormularioAdmision(datosFormulario)) {
         mostrarToast('Revisá los campos marcados en rojo antes de continuar.', 'error');
         return;
     }
 
     const btnSubmit = form.querySelector('button[type="button"]');
-    const textoOriginal = btnSubmit.innerText;
-    btnSubmit.innerText = 'ENVIANDO...';
-    btnSubmit.disabled = true;
 
-    try {
-        // Control de duplicados: verificamos si ya existe una inscripción con ese DNI
-        // antes de insertar (además de la restricción UNIQUE que debe existir en la
-        // columna "dni" de la tabla "inscripciones" en Supabase, como respaldo a nivel BD).
-        const { data: existentes, error: errorConsulta } = await supabaseClient
-            .from('inscripciones')
-            .select('id')
-            .eq('dni', dni)
-            .limit(1);
-
-        if (errorConsulta) throw errorConsulta;
-
-        if (existentes && existentes.length > 0) {
-            mostrarErrorCampo(dniInput, dniErrorEl, 'Ya existe una solicitud registrada con este DNI.');
-            mostrarToast('Este DNI ya tiene una solicitud de inscripción registrada.', 'error');
-            return;
-        }
-
-        const { error } = await supabaseClient
-            .from('inscripciones')
-            .insert([{ nombre, dni, nivel, email, mensaje }]);
-
-        if (error) {
-            // Código 23505 = violación de restricción UNIQUE (duplicado) a nivel de base de datos
-            if (error.code === '23505') {
-                mostrarErrorCampo(dniInput, dniErrorEl, 'Ya existe una solicitud registrada con este DNI.');
-                mostrarToast('Este DNI ya tiene una solicitud de inscripción registrada.', 'error');
+    await ejecutarConBotonEnCarga(btnSubmit, 'ENVIANDO...', async () => {
+        try {
+            if (await existeInscripcionConDNI(datosFormulario.dni)) {
+                notificarDniDuplicado(dniInput, dniErrorEl);
                 return;
             }
-            throw error;
+
+            const resultado = await registrarInscripcion(datosFormulario);
+
+            if (resultado === 'duplicado') {
+                notificarDniDuplicado(dniInput, dniErrorEl);
+                return;
+            }
+
+            mostrarToast('¡Solicitud enviada correctamente! Te contactaremos a la brevedad.', 'success');
+            form.reset();
+
+        } catch (error) {
+            console.error('Error al insertar en Supabase:', error);
+            mostrarToast('Hubo un error al enviar la solicitud. Intentá nuevamente en unos minutos.', 'error');
         }
-
-        mostrarToast('¡Solicitud enviada correctamente! Te contactaremos a la brevedad.', 'success');
-        form.reset();
-
-    } catch (error) {
-        console.error('Error al insertar en Supabase:', error);
-        mostrarToast('Hubo un error al enviar la solicitud. Intentá nuevamente en unos minutos.', 'error');
-    } finally {
-        btnSubmit.innerText = textoOriginal;
-        btnSubmit.disabled = false;
-    }
+    });
 }
 
 // ==========================================================
-// 3. Lógica de Cambio de Vistas (SPA)
+// CAMBIO DE VISTAS (SPA): landing pública vs. panel del alumno
 // ==========================================================
 function gestionarVistas(usuario) {
     const vistaLanding = document.getElementById('vistaLanding');
@@ -221,7 +251,9 @@ function gestionarVistas(usuario) {
     }
 }
 
-// 4. Lógica de Autenticación (Login)
+// ==========================================================
+// AUTENTICACIÓN (LOGIN)
+// ==========================================================
 async function iniciarSesion() {
     const email = document.getElementById('loginEmail').value.trim();
     const password = document.getElementById('loginPassword').value;
@@ -233,7 +265,6 @@ async function iniciarSesion() {
 
     try {
         const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
-
         if (error) throw error;
 
         mostrarToast('¡Inicio de sesión correcto! Bienvenido al Campus.', 'success');
@@ -255,31 +286,20 @@ async function iniciarSesion() {
 }
 
 // ==========================================================
-// MÓDULO: RECOVERY PASSWORD (OLVIDÉ MI CONTRASEÑA)
-// Ahora dispara el envío real de correo vía Supabase Auth (punto 3)
+// RECUPERACIÓN DE CONTRASEÑA
 // ==========================================================
-function abrirOlvidePassword() {
-    toggleModal(false);
-    toggleModalOlvide(true);
-}
-
 function toggleModalOlvide(mostrar) {
-    const modal = document.getElementById('modalOlvidePassword');
-    if (mostrar) {
-        modal.classList.remove('hidden');
-        document.getElementById('olvideEmail').value = '';
-    } else {
-        modal.classList.add('hidden');
-    }
+    alternarVisibilidadPorClase('modalOlvidePassword', mostrar);
+    if (mostrar) document.getElementById('olvideEmail').value = '';
 }
 
 function toggleModalExito(mostrar) {
-    const modal = document.getElementById('modalExitoRecuperacion');
-    if (mostrar) {
-        modal.classList.remove('hidden');
-    } else {
-        modal.classList.add('hidden');
-    }
+    alternarVisibilidadPorClase('modalExitoRecuperacion', mostrar);
+}
+
+function abrirOlvidePassword() {
+    toggleModal(false);
+    toggleModalOlvide(true);
 }
 
 async function procesarOlvidePassword() {
@@ -291,33 +311,26 @@ async function procesarOlvidePassword() {
     }
 
     const btnConfirmar = document.querySelector('#modalOlvidePassword button');
-    const textoOriginal = btnConfirmar.innerText;
-    btnConfirmar.innerText = 'ENVIANDO...';
-    btnConfirmar.disabled = true;
 
-    try {
-        // Llamada real a Supabase Auth: envía el correo de recuperación
-        // (antes esto era una simulación que solo mostraba el modal de éxito).
-        const { error } = await supabaseClient.auth.resetPasswordForEmail(emailInput, {
-            redirectTo: window.location.origin + window.location.pathname
-        });
+    await ejecutarConBotonEnCarga(btnConfirmar, 'ENVIANDO...', async () => {
+        try {
+            const { error } = await supabaseClient.auth.resetPasswordForEmail(emailInput, {
+                redirectTo: window.location.origin + window.location.pathname
+            });
+            if (error) throw error;
 
-        if (error) throw error;
+            toggleModalOlvide(false);
+            toggleModalExito(true);
 
-        toggleModalOlvide(false);
-        toggleModalExito(true);
-
-    } catch (error) {
-        console.error('Error al solicitar recuperación de contraseña:', error);
-        mostrarToast('No se pudo enviar el correo de recuperación: ' + error.message, 'error');
-    } finally {
-        btnConfirmar.innerText = textoOriginal;
-        btnConfirmar.disabled = false;
-    }
+        } catch (error) {
+            console.error('Error al solicitar recuperación de contraseña:', error);
+            mostrarToast('No se pudo enviar el correo de recuperación: ' + error.message, 'error');
+        }
+    });
 }
 
 // ==========================================================
-// 5. Cerrar Sesión
+// CERRAR SESIÓN
 // ==========================================================
 async function cerrarSesion() {
     try {
@@ -331,15 +344,12 @@ async function cerrarSesion() {
     }
 }
 
-// ==========================================================
-// 6. Persistencia de sesión al cargar la página
-// ==========================================================
+// Evita que el panel se cierre si el alumno recarga la página (F5)
 window.addEventListener('DOMContentLoaded', async () => {
     const { data: { session } } = await supabaseClient.auth.getSession();
     gestionarVistas(session ? session.user : null);
 });
 
-// Cerrar modal al hacer click fuera del contenido
 window.onclick = function (event) {
     const modal = document.getElementById('modalLogin');
     if (event.target == modal) {
@@ -348,35 +358,29 @@ window.onclick = function (event) {
 };
 
 // ==========================================================
-// LÓGICA DE CONTROL DE PESTAÑAS (TABS)
+// PESTAÑAS DEL PANEL DEL ALUMNO
 // ==========================================================
 function cambiarTab(tabSeleccionada) {
     const tabs = ['inicio', 'certificados'];
 
     tabs.forEach(tab => {
-        const contenedor = document.getElementById(`tab${tab.charAt(0).toUpperCase() + tab.slice(1)}`);
-        const boton = document.getElementById(`btn-tab-${tab}`);
+        const contenedorPestana = document.getElementById(`tab${tab.charAt(0).toUpperCase() + tab.slice(1)}`);
+        const botonPestana = document.getElementById(`btn-tab-${tab}`);
+        const esLaSeleccionada = tab === tabSeleccionada;
 
-        if (tab === tabSeleccionada) {
-            if (contenedor) contenedor.classList.remove('hidden');
-            if (boton) {
-                boton.classList.add('bg-blue-800', 'text-white');
-                boton.classList.remove('text-blue-200', 'hover:bg-blue-800');
-            }
-        } else {
-            if (contenedor) contenedor.classList.add('hidden');
-            if (boton) {
-                boton.classList.remove('bg-blue-800', 'text-white');
-                boton.classList.add('text-blue-200', 'hover:bg-blue-800');
-            }
+        if (contenedorPestana) contenedorPestana.classList.toggle('hidden', !esLaSeleccionada);
+
+        if (botonPestana) {
+            botonPestana.classList.toggle('bg-blue-800', esLaSeleccionada);
+            botonPestana.classList.toggle('text-white', esLaSeleccionada);
+            botonPestana.classList.toggle('text-blue-200', !esLaSeleccionada);
+            botonPestana.classList.toggle('hover:bg-blue-800', !esLaSeleccionada);
         }
     });
 }
 
 // ==========================================================
 // MÓDULO DE CERTIFICADOS
-// Antes usaba una variable fija (alumnoEsRegular = true) y RLS
-// desactivado. Ahora consulta el estado real del alumno en Supabase (punto 3).
 //
 // Requiere en Supabase:
 //   - Una tabla "alumnos" con columnas: documento (o legajo) y estado.
@@ -384,6 +388,17 @@ function cambiarTab(tabSeleccionada) {
 //     únicamente las columnas necesarias (documento/legajo y estado),
 //     nunca datos sensibles del alumno.
 // ==========================================================
+async function buscarAlumnoPorDocumentoOLegajo(documentoOLegajo) {
+    const { data: alumno, error } = await supabaseClient
+        .from('alumnos')
+        .select('estado')
+        .or(`documento.eq.${documentoOLegajo},legajo.eq.${documentoOLegajo}`)
+        .maybeSingle();
+
+    if (error) throw error;
+    return alumno;
+}
+
 async function procesarCertificado() {
     const inputDoc = document.getElementById('certDocumento').value.trim();
     const resultadoDiv = document.getElementById('resultadoCertificado');
@@ -396,41 +411,29 @@ async function procesarCertificado() {
         return;
     }
 
-    const textoOriginal = btnGenerar.innerText;
-    btnGenerar.innerText = 'VERIFICANDO...';
-    btnGenerar.disabled = true;
+    await ejecutarConBotonEnCarga(btnGenerar, 'VERIFICANDO...', async () => {
+        try {
+            const alumno = await buscarAlumnoPorDocumentoOLegajo(inputDoc);
 
-    try {
-        // Consulta real contra la tabla "alumnos" por documento o legajo
-        const { data: alumno, error } = await supabaseClient
-            .from('alumnos')
-            .select('estado')
-            .or(`documento.eq.${inputDoc},legajo.eq.${inputDoc}`)
-            .maybeSingle();
+            if (!alumno) {
+                mostrarToast('No se encontró ningún alumno con ese documento o legajo.', 'error');
+                return;
+            }
 
-        if (error) throw error;
+            if (alumno.estado === 'regular') {
+                resultadoDiv.classList.remove('hidden');
+            } else {
+                mostrarToast('El alumno no posee estado regular en el sistema. No se puede emitir el certificado.', 'error');
+            }
 
-        if (!alumno) {
-            mostrarToast('No se encontró ningún alumno con ese documento o legajo.', 'error');
-            return;
+        } catch (error) {
+            console.error('Error al verificar estado del alumno:', error);
+            mostrarToast('No se pudo verificar el estado del alumno. Intentá nuevamente.', 'error');
         }
-
-        if (alumno.estado === 'regular') {
-            resultadoDiv.classList.remove('hidden');
-        } else {
-            mostrarToast('El alumno no posee estado regular en el sistema. No se puede emitir el certificado.', 'error');
-        }
-
-    } catch (error) {
-        console.error('Error al verificar estado del alumno:', error);
-        mostrarToast('No se pudo verificar el estado del alumno. Intentá nuevamente.', 'error');
-    } finally {
-        btnGenerar.innerText = textoOriginal;
-        btnGenerar.disabled = false;
-    }
+    });
 }
 
 function descargarPDF() {
     mostrarToast('Generando documento PDF con firma digital institucional...', 'info');
-    // Aquí puede integrarse una librería como jsPDF o window.print()
+    // Pendiente: integrar una librería como jsPDF o usar window.print()
 }
