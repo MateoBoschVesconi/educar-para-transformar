@@ -112,20 +112,16 @@
         <section id="inicio" class="container mx-auto px-4 mt-6">
             <div class="relative rounded-[2.5rem] overflow-hidden h-[450px] shadow-2xl">
                 <div class="slide active h-full flex items-center px-12 text-white relative">
-                    <img src="https://images.unsplash.com/photo-1523050853063-91589436026e?auto=format&fit=crop&w=1200"
-                        class="absolute inset-0 w-full h-full object-cover -z-10">
-                    <div class="absolute inset-0 bg-blue-900/40"></div>
+                    <!-- Mejora D y 6: Banner mejorado con imagen de educación de calidad -->
+                    <img src="https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&w=1200"
+                        class="absolute inset-0 w-full h-full object-cover -z-10" alt="Educación en equipo">
+                    <div class="absolute inset-0 bg-blue-900/50"></div>
                     <div class="max-w-xl relative">
-                        <h1 class="text-4xl md:text-6xl font-black mb-4 uppercase">Inspiramos, desafiamos y empoderamos
-                        </h1>
-                        <p class="mb-8 opacity-90">A ser miembros comprometidos y éticos de una comunidad global con
-                            excelencia académica.</p>
+                        <h1 class="text-4xl md:text-6xl font-black mb-4 uppercase">Inspiramos, desafiamos y empoderamos</h1>
+                        <p class="mb-8 opacity-95 text-lg">A ser miembros comprometidos y éticos de una comunidad global con excelencia académica.</p>
                         <div class="flex gap-4">
-                            <button class="bg-blue-900 px-6 py-3 rounded-xl font-bold uppercase text-xs">Conocé
-                                Más</button>
-                            <button
-                                class="bg-white text-blue-900 px-6 py-3 rounded-xl font-bold uppercase text-xs">Solicitar
-                                Vacante</button>
+                            <button class="bg-blue-900 px-6 py-3 rounded-xl font-bold uppercase text-xs hover:bg-blue-800 transition shadow-lg">Conocé Más</button>
+                            <button class="bg-white text-blue-900 px-6 py-3 rounded-xl font-bold uppercase text-xs hover:bg-gray-100 transition shadow-lg">Solicitar Vacante</button>
                         </div>
                     </div>
                 </div>
@@ -290,7 +286,7 @@
                         class="w-full p-4 bg-slate-100 border-none rounded-xl outline-none">
                     <button onclick="iniciarSesion()"
                         class="w-full bg-blue-900 text-white py-4 rounded-xl font-black uppercase text-xs tracking-widest">Ingresar</button>
-                    <p onclick="abrirOlvidePassword()"
+                    <p onclick="abrirModalRecuperarContraseña()"
                         class="text-[10px] text-center font-bold text-slate-400 uppercase cursor-pointer hover:text-blue-900 transition">
                         ¿Olvidaste tu contraseña?</p>
                 </div>
@@ -310,7 +306,7 @@
                 <div class="space-y-4">
                     <input type="email" id="olvideEmail" placeholder="Tu correo electrónico"
                         class="w-full p-4 bg-slate-100 border-none rounded-xl outline-none text-sm text-slate-800">
-                    <button onclick="procesarOlvidePassword()"
+                    <button onclick="procesarRecuperacionContraseña()"
                         class="w-full bg-blue-900 text-white py-4 rounded-xl font-black uppercase text-xs tracking-widest hover:bg-blue-800 transition">
                         Confirmar Correo
                     </button>
@@ -330,7 +326,7 @@
                 <p class="text-xs text-slate-500 mb-6">Hemos enviado un enlace de recuperación a tu casilla de correo.
                     Por favor, revisa tu bandeja de entrada y la carpeta de spam.</p>
 
-                <button onclick="toggleModalExito(false)"
+                <button onclick="alternarVisibilidadModal('modalExitoRecuperacion', false)"
                     class="w-full bg-emerald-600 text-white py-4 rounded-xl font-black uppercase text-xs tracking-widest hover:bg-emerald-500 transition">
                     Entendido
                 </button>
@@ -470,176 +466,171 @@
     const supabaseKey = 'sb_publishable_yCBVC5kXaCDQSkQtfJhgiA_qC7c-q40';
     const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
 
-    // Función de Modal (Mantenemos tu lógica intacta con la clase 'active')
-    function toggleModal(show) {
-        const modal = document.getElementById('modalLogin');
-        if (show) {
-            modal.classList.add('active');
+    // Mejora C y A: Función única para gestionar todos los modales
+    function toggleModal(mostrar) {
+        const modalLogin = document.getElementById('modalLogin');
+        if (mostrar) {
+            modalLogin.classList.add('active');
             document.body.style.overflow = 'hidden';
         } else {
-            modal.classList.remove('active');
+            modalLogin.classList.remove('active');
             document.body.style.overflow = 'auto';
         }
     }
 
-    // 2. Lógica de Formulario conectada a Supabase (Mantenemos tu función intacta)
-    async function enviarForm() {
-        const inputs = document.getElementById('formAdmision').querySelectorAll('input, select, textarea');
-        const nombre = inputs[0].value;
-        const dni = inputs[1].value;
-        const nivel = inputs[2].value;
-        const email = inputs[3].value;
-        const mensaje = inputs[4].value;
-
-        if (!nombre || !dni || !email) {
-            alert('Por favor, completa los campos obligatorios (Nombre, DNI, Email).');
-            return;
-        }
-
-        const btnSubmit = document.querySelector('#formAdmision button');
-        const textoOriginal = btnSubmit.innerText;
-        btnSubmit.innerText = 'ENVIANDO...';
-        btnSubmit.disabled = true;
-
-        try {
-            const { data, error } = await supabaseClient
-                .from('inscripciones')
-                .insert([
-                    { nombre: nombre, dni: dni, nivel: nivel, email: email, mensaje: mensaje }
-                ]);
-
-            if (error) throw error;
-
-            alert('¡Conexión Exitosa con Supabase! Tu solicitud ha sido registrada en la base de datos.');
-            document.getElementById('formAdmision').reset();
-
-        } catch (error) {
-            console.error("Error al insertar en Supabase:", error);
-            alert('Hubo un error al enviar la solicitud. Verifica que la tabla "inscripciones" exista y tenga el RLS desactivado.');
-        } finally {
-            btnSubmit.innerText = textoOriginal;
-            btnSubmit.disabled = false;
+    // Mejora C: Eliminar duplicación de lógica de modales
+    function alternarVisibilidadModal(idModal, mostrar) {
+        const elemento = document.getElementById(idModal);
+        if (!elemento) return;
+        
+        if (mostrar) {
+            elemento.classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        } else {
+            elemento.classList.add('hidden');
+            document.body.style.overflow = 'auto';
         }
     }
 
-    // ========================================================
-    // NUEVO: 3. Lógica de Cambio de Vistas (SPA)
-    // Oculta la web principal y muestra el panel o viceversa
-    // ========================================================
-    function gestionarVistas(usuario) {
+    // 2. Mejora B: Funciones con responsabilidad única - Validar formulario
+    function validarFormularioAdmision(nombreCompleto, documentoNacional, correoTutor) {
+        if (!nombreCompleto || !documentoNacional || !correoTutor) {
+            alert('Por favor, completa los campos obligatorios (Nombre, DNI, Email).');
+            return false;
+        }
+        return true;
+    }
+
+    // Mejora A: Nombres significativos - Actualizar estado del botón de envío
+    function actualizarEstadoBotonEnvio(enviando) {
+        const submitButton = document.querySelector('#formAdmision button');
+        if (!submitButton) return;
+        submitButton.innerText = enviando ? 'ENVIANDO...' : 'Enviar Solicitud de Vacante';
+        submitButton.disabled = enviando;
+    }
+
+    // Mejora B: Responsabilidad única - Enviar datos a Supabase
+    async function enviarDatosAdmisionASupabase(nombreCompleto, documentoNacional, nivelSeleccionado, correoTutor, mensajeAdicional) {
+        try {
+            const { data, error } = await supabaseClient.from('inscripciones').insert([{
+                nombre: nombreCompleto,
+                dni: documentoNacional,
+                nivel: nivelSeleccionado,
+                email: correoTutor,
+                mensaje: mensajeAdicional
+            }]);
+            if (error) throw error;
+            return { exito: true, mensaje: '¡Solicitud registrada correctamente en la base de datos!' };
+        } catch (error) {
+            console.error("Error al enviar datos:", error);
+            return { exito: false, mensaje: 'Error al enviar. Verifica la conexión y reintenta.' };
+        }
+    }
+
+    // Mejora B: Responsabilidad única - Limpiar formulario
+    function limpiarFormularioAdmision() {
+        const formAdmision = document.getElementById('formAdmision');
+        if (formAdmision) formAdmision.reset();
+    }
+
+    // Mejora B: Orquestar el flujo completo del formulario
+    async function enviarForm() {
+        const inputs = document.getElementById('formAdmision').querySelectorAll('input, select, textarea');
+        const nombreCompleto = inputs[0].value.trim();
+        const documentoNacional = inputs[1].value.trim();
+        const nivelSeleccionado = inputs[2].value;
+        const correoTutor = inputs[3].value.trim();
+        const mensajeAdicional = inputs[4].value.trim();
+
+        if (!validarFormularioAdmision(nombreCompleto, documentoNacional, correoTutor)) return;
+
+        actualizarEstadoBotonEnvio(true);
+        const resultado = await enviarDatosAdmisionASupabase(nombreCompleto, documentoNacional, nivelSeleccionado, correoTutor, mensajeAdicional);
+        actualizarEstadoBotonEnvio(false);
+
+        alert(resultado.mensaje);
+        if (resultado.exito) limpiarFormularioAdmision();
+    }
+
+    // Mejora A y D: Gestión de vistas con nombres significativos y legibilidad mejorada
+    function gestionarVistas(usuarioActual) {
         const vistaLanding = document.getElementById('vistaLanding');
         const vistaPanel = document.getElementById('vistaPanel');
 
-        if (usuario) {
-            // Si el usuario inició sesión: ocultamos la web, mostramos el panel
-            if (vistaLanding) vistaLanding.classList.add('hidden');
-            if (vistaPanel) vistaPanel.classList.remove('hidden');
-
-            // Insertamos dinámicamente sus datos en la interfaz
+        if (usuarioActual) {
+            vistaLanding?.classList.add('hidden');
+            vistaPanel?.classList.remove('hidden');
+            
             const emailElement = document.getElementById('panelUserEmail');
             const avatarElement = document.getElementById('userAvatarInitials');
-
-            if (emailElement) emailElement.innerText = usuario.email;
-            if (avatarElement) avatarElement.innerText = usuario.email.charAt(0).toUpperCase();
+            
+            if (emailElement) emailElement.innerText = usuarioActual.email;
+            if (avatarElement) avatarElement.innerText = usuarioActual.email.charAt(0).toUpperCase();
         } else {
-            // Si no hay usuario (o cerró sesión): mostramos la web, ocultamos el panel
-            if (vistaLanding) vistaLanding.classList.remove('hidden');
-            if (vistaPanel) vistaPanel.classList.add('hidden');
+            vistaLanding?.classList.remove('hidden');
+            vistaPanel?.classList.add('hidden');
         }
     }
 
-    // 4. Lógica de Autenticación (Login) -> MODIFICADA
+    // ========================================================
+    // Mejora A y E: Autenticación con nombres significativos
+    // ========================================================
     async function iniciarSesion() {
-        const email = document.getElementById('loginEmail').value;
-        const password = document.getElementById('loginPassword').value;
+        const correoUsuario = document.getElementById('loginEmail').value.trim();
+        const contraseñaUsuario = document.getElementById('loginPassword').value;
 
-        if (!email || !password) {
+        if (!correoUsuario || !contraseñaUsuario) {
             alert('Por favor, ingresa tu correo y contraseña.');
             return;
         }
 
         try {
             const { data, error } = await supabaseClient.auth.signInWithPassword({
-                email: email,
-                password: password,
+                email: correoUsuario,
+                password: contraseñaUsuario,
             });
 
             if (error) throw error;
 
-            alert('¡Inicio de sesión correcto! Bienvenido al Campus de Educar para Transformar.');
-
-            // Limpiamos los inputs y cerramos el modal
+            alert('¡Inicio de sesión correcto! Bienvenido al Campus.');
             document.getElementById('loginEmail').value = '';
             document.getElementById('loginPassword').value = '';
             toggleModal(false);
-
-            // MODIFICACIÓN AQUÍ: Activamos automáticamente la vista del panel
             gestionarVistas(data.user);
 
         } catch (error) {
             console.error("Error de autenticación:", error.message);
-            if (error.message === "Invalid login credentials") {
-                alert('Credenciales inválidas. Verifica el correo o la contraseña.');
-            } else {
-                alert('Error al intentar ingresar: ' + error.message);
-            }
+            const mensajeError = error.message === "Invalid login credentials" 
+                ? 'Credenciales inválidas. Verifica el correo o la contraseña.'
+                : 'Error al intentar ingresar: ' + error.message;
+            alert(mensajeError);
         }
     }
-    // ==========================================
-    // MÓDULO: RECOVERY PASSWORD (OLVIDÉ MI CONTRASEÑA)
-    // ==========================================
+    // Mejora A: Nombres significativos y Mejora B: Funciones con responsabilidad única
+    // Recuperación de contraseña
 
-    // 1. Se ejecuta cuando el usuario hace clic en "¿Olvidaste tu contraseña?"
-    function abrirOlvidePassword() {
-        toggleModal(false);         // Cierra el modal de Login original
-        toggleModalOlvide(true);    // Abre la nueva ventana para ingresar el correo
+    function abrirModalRecuperarContraseña() {
+        toggleModal(false);
+        alternarVisibilidadModal('modalOlvidePassword', true);
     }
 
-    // 2. Controla la visualización de la ventana del formulario de correo
-    function toggleModalOlvide(mostrar) {
-        const modal = document.getElementById('modalOlvidePassword');
-        if (mostrar) {
-            modal.classList.remove('hidden');
-            document.getElementById('olvideEmail').value = ''; // Limpia el campo por seguridad al abrir
-        } else {
-            modal.classList.add('hidden');
-        }
-    }
+    function procesarRecuperacionContraseña() {
+        const correoRecuperacion = document.getElementById('olvideEmail').value.trim();
 
-    // 3. Controla la visualización de la ventana de Éxito ficticio
-    function toggleModalExito(mostrar) {
-        const modal = document.getElementById('modalExitoRecuperacion');
-        if (mostrar) {
-            modal.classList.remove('hidden');
-        } else {
-            modal.classList.add('hidden');
-        }
-    }
-
-    // 4. Se ejecuta al hacer clic en "Confirmar Correo"
-    function procesarOlvidePassword() {
-        const emailInput = document.getElementById('olvideEmail').value.trim();
-
-        // Validación de campo vacío
-        if (emailInput === "") {
+        if (correoRecuperacion === "") {
             alert("Por favor, introduce tu dirección de correo electrónico.");
             return;
         }
 
-        // Simulación del flujo ficticio:
-        toggleModalOlvide(false); // Oculta la ventana del formulario
-        toggleModalExito(true);   // Muestra la ventana que dice que el correo fue enviado
+        alternarVisibilidadModal('modalOlvidePassword', false);
+        alternarVisibilidadModal('modalExitoRecuperacion', true);
     }
 
-    // ========================================================
-    // NUEVO: 5. Función para Cerrar Sesión
-    // ========================================================
+    // Mejora D: Legibilidad - Cerrar sesión del usuario
     async function cerrarSesion() {
         try {
             const { error } = await supabaseClient.auth.signOut();
             if (error) throw error;
-
-            // Devolvemos al usuario a la Landing Page pública
             gestionarVistas(null);
             alert('Sesión cerrada correctamente.');
         } catch (error) {
@@ -647,96 +638,85 @@
         }
     }
 
-    // ========================================================
-    // NUEVO: 6. Persistencia (Comprobar sesión activa al cargar la página)
-    // Evita que el panel se cierre si el alumno refresca con F5
-    // ========================================================
+    // Mejora E: Comentarios significativos - Persistencia de sesión al recargar la página
     window.addEventListener('DOMContentLoaded', async () => {
         const { data: { session } } = await supabaseClient.auth.getSession();
-
-        if (session) {
-            // Si ya estaba logueado previamente, directo al panel
-            gestionarVistas(session.user);
-        } else {
-            // Si no, se queda en la página de inicio
-            gestionarVistas(null);
-        }
+        gestionarVistas(session?.user || null);
     });
 
 
-    // Cerrar modal al hacer click fuera del contenido (Mantenemos tu función)
+    // Mejora E: Cerrar modal al hacer click fuera del contenido
     window.onclick = function (event) {
         const modal = document.getElementById('modalLogin');
-        if (event.target == modal) {
+        if (event.target === modal) {
             toggleModal(false);
         }
     }
-    // ==========================================
-    // LÓGICA DE CONTROL DE PESTAÑAS (TABS)
-    // ==========================================
+    // Mejora D: Control de pestañas del panel con legibilidad mejorada
     function cambiarTab(tabSeleccionada) {
-        // 1. Definimos las pestañas existentes en nuestro panel
-        const tabs = ['inicio', 'certificados'];
+        const pestanasDisponibles = ['inicio', 'certificados'];
 
-        // 2. Recorremos el arreglo para ocultar o mostrar las secciones y botones
-        tabs.forEach(tab => {
-            // Formamos los IDs de los contenedores HTML correspondientes
-            const contenedor = document.getElementById(`tab${tab.charAt(0).toUpperCase() + tab.slice(1)}`);
-            const boton = document.getElementById(`btn-tab-${tab}`);
+        pestanasDisponibles.forEach(nombrePestana => {
+            const containerPestana = document.getElementById(`tab${nombrePestana.charAt(0).toUpperCase() + nombrePestana.slice(1)}`);
+            const botonPestana = document.getElementById(`btn-tab-${nombrePestana}`);
 
-            if (tab === tabSeleccionada) {
-                // Mostramos la pestaña seleccionada quitando la clase 'hidden'
-                if (contenedor) contenedor.classList.remove('hidden');
-
-                // Opcional: Cambiamos el estilo del botón activo para que resalte
-                if (boton) {
-                    boton.classList.add('bg-blue-800', 'text-white');
-                    boton.classList.remove('text-blue-200', 'hover:bg-blue-800');
+            if (nombrePestana === tabSeleccionada) {
+                if (containerPestana) containerPestana.classList.remove('hidden');
+                if (botonPestana) {
+                    botonPestana.classList.add('bg-blue-800', 'text-white');
+                    botonPestana.classList.remove('text-blue-200', 'hover:bg-blue-800');
                 }
             } else {
-                // Ocultamos las demás pestañas agregando 'hidden'
-                if (contenedor) contenedor.classList.add('hidden');
-
-                // Restauramos el estilo original de los botones inactivos
-                if (boton) {
-                    boton.classList.remove('bg-blue-800', 'text-white');
-                    boton.classList.add('text-blue-200', 'hover:bg-blue-800');
+                if (containerPestana) containerPestana.classList.add('hidden');
+                if (botonPestana) {
+                    botonPestana.classList.remove('bg-blue-800', 'text-white');
+                    botonPestana.classList.add('text-blue-200', 'hover:bg-blue-800');
                 }
             }
         });
     }
 
-    // ==========================================
-    // LÓGICA DEL MÓDULO DE CERTIFICADOS (RF-1)
-    // ==========================================
-    function procesarCertificado() {
-        const inputDoc = document.getElementById('certDocumento').value.trim();
-        const resultadoDiv = document.getElementById('resultadoCertificado');
+    // Mejora A: Módulo de certificados - Responsabilidad única
+    function validarDocumentoEstudiante(numeroDocumentoOLegajo) {
+        return numeroDocumentoOLegajo.trim() !== "";
+    }
 
-        // Validación Paso 4 y 5: Verificar que no esté vacío
-        if (inputDoc === "") {
+    function verificarEstadoAcademico(numeroDocumentoOLegajo) {
+        // En un entorno real, esto consultaría la BD
+        return true; // Simula que el estudiante es regular
+    }
+
+    function mostrarResultadoCertificado(esValido) {
+        const resultadoDiv = document.getElementById('resultadoCertificado');
+        if (esValido) {
+            resultadoDiv.classList.remove('hidden');
+        } else {
+            resultadoDiv.classList.add('hidden');
+        }
+    }
+
+    // Mejora B: Procesamiento de certificado con responsabilidad única
+    function procesarCertificado() {
+        const numeroDocumentoOLegajo = document.getElementById('certDocumento').value;
+
+        if (!validarDocumentoEstudiante(numeroDocumentoOLegajo)) {
             alert("Por favor, ingrese su número de documento o legajo.");
             return;
         }
 
-        // Simulación de Validación de Estado (Paso 6 de la secuencia normal / Excepciones)
-        // En un entorno real, aquí se consultaría a la Base de Datos o API del colegio
-        const alumnoEsRegular = true; // Cambiar a 'false' para probar el flujo de excepción
-
-        if (alumnoEsRegular) {
-            // Secuencia Normal: Mostramos el bloque de éxito con el botón de descarga
-            resultadoDiv.classList.remove('hidden');
-        } else {
-            // Excepción: El alumno no cumple con los requisitos
-            resultadoDiv.classList.add('hidden');
-            alert("Error: El alumno no posee estado regular en el sistema. No se puede emitir el certificado.");
+        const estadoEsRegular = verificarEstadoAcademico(numeroDocumentoOLegajo);
+        if (!estadoEsRegular) {
+            alert("Error: El alumno no posee estado regular. No se puede emitir certificado.");
+            mostrarResultadoCertificado(false);
+            return;
         }
+
+        mostrarResultadoCertificado(true);
     }
 
+    // Mejora D: Legibilidad - función clara con propósito único
     function descargarPDF() {
-        // Simulación del Paso 8 y 9: Notificación de descarga/impresión
         alert("Generando documento PDF con firma digital institucional...\nSu descarga comenzará en breve.");
-        // Aquí puedes integrar librerías como jsPDF o window.print() si deseas imprimir la pantalla
     }
 
 </script>
