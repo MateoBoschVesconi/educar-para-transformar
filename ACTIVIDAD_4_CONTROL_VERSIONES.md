@@ -275,7 +275,7 @@ git merge mejora-buenas-practicas
 ---
 
 **Fecha de realización:** 2026-09-01  
-**Autor:** Gustavo Vernengo  
+**Autor:** Gustavo Vernengo y Axel Acosta
 **Proyecto:** Educar para Transformar  
 **Rama:** mejora-buenas-practicas  
 **Estado:** ✅ COMPLETADO
