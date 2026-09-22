@@ -11,6 +11,43 @@ export default function LandingPage() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // Form state
+  const [nombre, setNombre] = useState('');
+  const [dni, setDni] = useState('');
+  const [nivel, setNivel] = useState('Nivel Inicial');
+  const [correoTutor, setCorreoTutor] = useState('');
+  const [mensaje, setMensaje] = useState('');
+  const [showNivelDropdown, setShowNivelDropdown] = useState(false);
+  const [sendingForm, setSendingForm] = useState(false);
+
+  const handleEnviarSolicitud = async () => {
+    if (!nombre || !dni || !correoTutor) {
+      Alert.alert('Error', 'Por favor completá los campos obligatorios (Nombre, DNI, Correo).');
+      return;
+    }
+
+    setSendingForm(true);
+    
+    const { error } = await supabase
+      .from('solicitudes_vacante')
+      .insert([
+        { nombre_completo: nombre, dni, nivel, correo_tutor: correoTutor, mensaje }
+      ]);
+      
+    setSendingForm(false);
+
+    if (error) {
+      Alert.alert('Error', 'Hubo un problema al enviar la solicitud. Inténtalo más tarde.');
+      console.error(error);
+    } else {
+      Alert.alert('Éxito', 'Tu solicitud ha sido enviada correctamente.');
+      setNombre('');
+      setDni('');
+      setCorreoTutor('');
+      setMensaje('');
+    }
+  };
+
   const handleLogin = async () => {
     if (!email || !password) {
       Alert.alert('Error', 'Por favor ingresá tu correo y contraseña.');
@@ -210,9 +247,83 @@ export default function LandingPage() {
                 <Text className="text-white">🕒 Lunes a Viernes: 07:30 a 17:30 hs</Text>
               </View>
             </View>
-            <View className="bg-white p-8 rounded-3xl flex-1 gap-4">
-              <TouchableOpacity className="w-full bg-orange-500 py-4 rounded-xl shadow-lg mt-auto">
-                <Text className="text-center text-white font-black uppercase text-xs tracking-widest">Enviar Solicitud de Vacante</Text>
+            <View className="bg-white p-8 rounded-3xl flex-1 gap-4 z-10">
+              <TextInput 
+                placeholder="Nombre completo"
+                value={nombre}
+                onChangeText={setNombre}
+                className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-slate-700"
+                placeholderTextColor="#94a3b8"
+              />
+              <View className="flex-row gap-4 z-50">
+                <TextInput 
+                  placeholder="DNI"
+                  value={dni}
+                  onChangeText={setDni}
+                  keyboardType="numeric"
+                  className="flex-1 bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-slate-700"
+                  placeholderTextColor="#94a3b8"
+                />
+                
+                <View className="flex-1 relative">
+                  <TouchableOpacity 
+                    onPress={() => setShowNivelDropdown(!showNivelDropdown)}
+                    className="flex-1 bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 flex-row justify-between items-center"
+                  >
+                    <Text className="text-slate-700">{nivel}</Text>
+                    <Text className="text-slate-400 text-xs">▼</Text>
+                  </TouchableOpacity>
+                  
+                  {showNivelDropdown && (
+                    <View className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden z-50">
+                      {['Nivel Inicial', 'Nivel Primario', 'Nivel Secundario'].map((opcion) => (
+                        <TouchableOpacity
+                          key={opcion}
+                          className={`px-4 py-3 ${nivel === opcion ? 'bg-slate-200' : 'bg-white'} hover:bg-slate-50`}
+                          onPress={() => {
+                            setNivel(opcion);
+                            setShowNivelDropdown(false);
+                          }}
+                        >
+                          <Text className="text-slate-700">{opcion}</Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  )}
+                </View>
+              </View>
+              
+              <TextInput 
+                placeholder="Correo electrónico del tutor"
+                value={correoTutor}
+                onChangeText={setCorreoTutor}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-slate-700"
+                placeholderTextColor="#94a3b8"
+              />
+              
+              <TextInput 
+                placeholder="Mensaje o consulta adicional"
+                value={mensaje}
+                onChangeText={setMensaje}
+                multiline
+                numberOfLines={4}
+                textAlignVertical="top"
+                className="w-full h-24 bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-slate-700"
+                placeholderTextColor="#94a3b8"
+              />
+
+              <TouchableOpacity 
+                onPress={handleEnviarSolicitud}
+                disabled={sendingForm}
+                className="w-full bg-orange-500 py-4 rounded-xl shadow-lg mt-2 flex-row justify-center items-center"
+              >
+                {sendingForm ? (
+                  <ActivityIndicator color="white" />
+                ) : (
+                  <Text className="text-center text-white font-black uppercase text-xs tracking-widest">Enviar Solicitud de Vacante</Text>
+                )}
               </TouchableOpacity>
             </View>
           </View>
