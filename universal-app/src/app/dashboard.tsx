@@ -1,12 +1,15 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Alert, TextInput, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Link, useRouter } from 'expo-router';
 import { supabase } from '../lib/supabase';
+import * as Print from 'expo-print';
+import * as Sharing from 'expo-sharing';
 
 export default function Dashboard() {
   const router = useRouter();
   const [email, setEmail] = useState('Cargando...');
+  const [documento, setDocumento] = useState('');
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -24,6 +27,58 @@ export default function Dashboard() {
       Alert.alert('Error', 'No se pudo cerrar sesión');
     } else {
       router.replace('/');
+    }
+  };
+
+  const handleGenerateCertificate = async () => {
+    if (!documento.trim()) {
+      Alert.alert('Error', 'Por favor ingresá tu documento o legajo.');
+      return;
+    }
+
+    const html = `
+      <html>
+        <body style="font-family: Arial, sans-serif; padding: 40px; text-align: center; color: #333;">
+          <div style="border: 4px solid #1e3a8a; padding: 40px; border-radius: 10px; max-width: 800px; margin: 0 auto;">
+            <h1 style="color: #1e3a8a; font-size: 32px; text-transform: uppercase;">Certificado de Alumno Regular</h1>
+            <p style="font-size: 20px; margin-top: 40px; line-height: 1.5;">
+              Se deja constancia que la persona con documento / legajo N° <strong style="font-size: 24px;">${documento}</strong><br />
+              es alumno/a regular del <strong>Centro Educativo Educar para Transformar</strong>.
+            </p>
+            <p style="font-size: 16px; margin-top: 20px;">
+              A pedido del interesado y para ser presentado ante las autoridades que correspondan, se expide el presente certificado.
+            </p>
+            <div style="margin-top: 80px; display: flex; justify-content: space-around;">
+              <div style="border-top: 1px solid #333; padding-top: 10px; width: 250px;">
+                <p style="margin: 0;">Secretaría Académica</p>
+              </div>
+              <div style="border-top: 1px solid #333; padding-top: 10px; width: 250px;">
+                <p style="margin: 0;">Dirección</p>
+              </div>
+            </div>
+            <p style="margin-top: 60px; font-size: 12px; color: #777;">
+              Fecha de emisión: ${new Date().toLocaleDateString('es-AR')}
+            </p>
+          </div>
+        </body>
+      </html>
+    `;
+
+    try {
+      if (Platform.OS === 'web') {
+        await Print.printAsync({ html });
+      } else {
+        const { uri } = await Print.printToFileAsync({ html });
+        const isAvailable = await Sharing.isAvailableAsync();
+        if (isAvailable) {
+          await Sharing.shareAsync(uri);
+        } else {
+          Alert.alert('Error', 'No se puede compartir o descargar en este dispositivo.');
+        }
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Ocurrió un problema al generar el certificado.');
+      console.error(error);
     }
   };
 
@@ -97,6 +152,28 @@ export default function Dashboard() {
             <View className="bg-white p-6 rounded-2xl shadow-sm border-l-4 border-amber-500 flex-1 min-w-[200px]">
               <Text className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Avisos Pendientes</Text>
               <Text className="text-2xl font-black text-slate-800 mt-2">2 Nuevos</Text>
+            </View>
+          </View>
+
+          <View className="bg-white p-6 rounded-2xl shadow-sm mb-6">
+            <Text className="font-black text-slate-800 uppercase text-xs tracking-wider mb-4">Certificado de Alumno Regular</Text>
+            <Text className="text-slate-500 text-xs mb-4">
+              Ingresá tu documento o legajo para generar y descargar tu certificado en formato PDF.
+            </Text>
+            <View className="flex-col md:flex-row gap-4">
+              <TextInput
+                className="flex-1 bg-slate-50 p-4 rounded-xl border border-slate-200"
+                placeholder="N° de Documento o Legajo"
+                value={documento}
+                onChangeText={setDocumento}
+                keyboardType="numeric"
+              />
+              <TouchableOpacity
+                onPress={handleGenerateCertificate}
+                className="bg-blue-900 px-6 py-4 rounded-xl justify-center items-center shadow-lg"
+              >
+                <Text className="text-white font-black uppercase text-[10px] tracking-widest">Generar PDF</Text>
+              </TouchableOpacity>
             </View>
           </View>
 
