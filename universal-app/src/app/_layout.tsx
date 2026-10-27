@@ -5,7 +5,7 @@ import { ScrollView } from 'react-native';
 
 export default function RootLayout() {
   return (
-    <SafeAreaView className="flex-1 bg-background" edges={['top', 'bottom', 'left', 'right']}>
+    <SafeAreaView className="flex-1 bg-background p-4 md:p-8 overflow-x-hidden" edges={['top', 'bottom', 'left', 'right']}>
       <ScrollView contentContainerStyle={{ flexGrow: 1 }} className="flex-1">
         <Slot />
       </ScrollView>

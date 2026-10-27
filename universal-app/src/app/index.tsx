@@ -151,7 +151,7 @@ export default function LandingPage() {
         </View>
 
         {/* NIVELES EDUCATIVOS */}
-        <View className="px-4 py-20 mt-8 max-w-7xl mx-auto w-full">
+        <View className="px-4 py-20 mt-8 max-w-full mx-auto w-full">
           <View className="flex-row items-center gap-4 mb-12">
             <View className="w-12 h-1 bg-orange-500" />
             <Text className="text-2xl font-black text-blue-900 uppercase">Niveles Educativos</Text>
