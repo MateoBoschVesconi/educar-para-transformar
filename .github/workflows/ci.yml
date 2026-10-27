@@ -1,0 +1,125 @@
+name: Pipeline CI/CD - Educar Para Transformar
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  # ==========================================================
+  # ETAPA 1: Lint, Análisis Estático y Verificación de Tipos
+  # ==========================================================
+  static-analysis:
+    name: 🔍 Linter y Análisis Estático
+    runs-on: ubuntu-latest
+    steps:
+      - name: Descargar Código Fuente
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configurar Node.js (v22)
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+          cache-dependency-path: universal-app/package-lock.json
+
+      - name: Instalar Dependencias
+        run: |
+          cd universal-app
+          npm ci
+
+      - name: Ejecutar Linter (ESLint)
+        run: |
+          cd universal-app
+          npm run lint
+
+      - name: Verificación de Tipos TypeScript
+        run: |
+          cd universal-app
+          npx tsc --noEmit
+
+  # ==========================================================
+  # ETAPA 2: Pruebas Dinámicas y Verificación QA (Cypress / Tests)
+  # ==========================================================
+  test:
+    name: 🧪 Pruebas Dinámicas y Automatizadas (QA)
+    runs-on: ubuntu-latest
+    needs: [static-analysis]
+    steps:
+      - name: Descargar Código Fuente
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+          cache-dependency-path: universal-app/package-lock.json
+
+      - name: Instalar Dependencias
+        run: |
+          cd universal-app
+          npm ci
+
+      - name: Ejecutar Pruebas Automatizadas QA
+        run: |
+          cd universal-app
+          npm test --if-present
+
+  # ==========================================================
+  # ETAPA 3: Build y Gestión de Artefactos de Despliegue
+  # ==========================================================
+  build:
+    name: 📦 Compilación y Gestión de Artefactos
+    runs-on: ubuntu-latest
+    needs: [test]
+    steps:
+      - name: Descargar Código Fuente
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+          cache-dependency-path: universal-app/package-lock.json
+
+      - name: Instalar Dependencias
+        run: |
+          cd universal-app
+          npm ci
+
+      - name: Compilar Aplicación Web (Expo Web Build)
+        run: |
+          cd universal-app
+          npx expo export --platform web
+
+      - name: Subir Artefacto Compilado (Gestión de Artefactos)
+        uses: actions/upload-artifact@v4
+        with:
+          name: universal-app-dist
+          path: universal-app/dist/
+          retention-days: 14
+
+  # ==========================================================
+  # ETAPA 4: Orquestador Centralizado SonarCloud
+  # ==========================================================
+  sonarcloud:
+    name: 🛡️ Análisis de Calidad SonarCloud
+    runs-on: ubuntu-latest
+    needs: [static-analysis]
+    steps:
+      - name: Descargar Código Fuente
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        continue-on-error: true
