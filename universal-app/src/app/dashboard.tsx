@@ -19,7 +19,7 @@ export default function Dashboard() {
         router.replace('/');
       }
     });
-  }, []);
+  }, [router]);
 
   const handleSignOut = async () => {
     const { error } = await supabase.auth.signOut();
@@ -105,6 +105,13 @@ export default function Dashboard() {
               <Text className="text-blue-200 text-sm">📜</Text>
               <Text className="font-bold text-xs uppercase tracking-wider text-blue-200">Certificados</Text>
             </TouchableOpacity>
+            <TouchableOpacity 
+              onPress={() => router.push('/devops-qa' as any)}
+              className="flex-row items-center gap-3 p-3 rounded-xl bg-orange-600 hover:bg-orange-500 mt-2"
+            >
+              <Text className="text-white text-sm">🧪</Text>
+              <Text className="font-black text-xs uppercase tracking-wider text-white">DevOps & QA (U4/U5)</Text>
+            </TouchableOpacity>
           </View>
         </View>
 
@@ -181,7 +188,7 @@ export default function Dashboard() {
             <Text className="font-black text-slate-800 uppercase text-xs tracking-wider mb-4">Circular Informativa</Text>
             <View className="p-4 bg-slate-50 rounded-xl">
               <Text className="text-slate-600 text-xs leading-relaxed">
-                Estimado alumno/tutor, le recordamos que las mesas de examen del periodo Julio ya se encuentran abiertas para la inscripción desde la sección "Mis Cursos". Ante cualquier duda técnica, contactar a soporte.
+                Estimado alumno/tutor, le recordamos que las mesas de examen del periodo Julio ya se encuentran abiertas para la inscripción desde la sección &quot;Mis Cursos&quot;. Ante cualquier duda técnica, contactar a soporte.
               </Text>
             </View>
           </View>

@@ -1,0 +1,17 @@
+#!/usr/bin/env sh
+
+echo "🔍 [Pre-commit Hook] Ejecutando validación de linter y sintaxis en universal-app..."
+cd universal-app || exit 1
+
+if command -v npm >/dev/null 2>&1; then
+  npm run lint
+else
+  npm.cmd run lint
+fi
+
+if [ $? -ne 0 ]; then
+  echo "❌ [Pre-commit Hook Falló]: Corrige los errores de linter antes de hacer commit."
+  exit 1
+fi
+
+echo "✅ [Pre-commit Hook Exitoso]: Código validado correctamente."

@@ -88,13 +88,25 @@ export default function LandingPage() {
               </View>
             </View>
 
-            <View className="hidden lg:flex flex-row gap-6">
+            <View className="hidden lg:flex flex-row gap-6 items-center">
               <Text className="text-[11px] font-black uppercase text-slate-500 hover:text-blue-900">Inicio</Text>
               <Text className="text-[11px] font-black uppercase text-slate-500 hover:text-blue-900">Niveles</Text>
               <Text className="text-[11px] font-black uppercase text-slate-500 hover:text-blue-900">Bienestar</Text>
+              <TouchableOpacity 
+                onPress={() => router.push('/devops-qa' as any)}
+                className="bg-indigo-50 border border-indigo-200 px-3 py-1.5 rounded-lg"
+              >
+                <Text className="text-[10px] font-black uppercase text-indigo-700">DevOps & QA (U4/U5) 🧪</Text>
+              </TouchableOpacity>
             </View>
 
-            <View className="flex-row gap-2">
+            <View className="flex-row gap-2 items-center">
+              <TouchableOpacity 
+                onPress={() => router.push('/devops-qa' as any)}
+                className="lg:hidden bg-indigo-50 border border-indigo-200 px-2 py-2 rounded-lg"
+              >
+                <Text className="text-[10px] font-black text-indigo-700">QA 🧪</Text>
+              </TouchableOpacity>
               <TouchableOpacity 
                 onPress={() => setModalVisible(true)}
                 className="border-2 border-blue-900 px-4 py-2 rounded-lg"
@@ -212,21 +224,21 @@ export default function LandingPage() {
             <View className="bg-white p-8 rounded-3xl shadow-lg flex-1">
               <Text className="text-yellow-400 mb-4">⭐⭐⭐⭐⭐</Text>
               <Text className="italic text-slate-600 text-sm mb-4">
-                "Excelente institución, con un equipo humano comprometido y maravillosas instalaciones."
+                &quot;Excelente institución, con un equipo humano comprometido y maravillosas instalaciones.&quot;
               </Text>
               <Text className="font-black text-blue-900 uppercase text-xs">María López - Madre de Primaria</Text>
             </View>
             <View className="bg-white p-8 rounded-3xl shadow-lg flex-1">
               <Text className="text-yellow-400 mb-4">⭐⭐⭐⭐</Text>
               <Text className="italic text-slate-600 text-sm mb-4">
-                "Mis hijos están felices y motivados cada día. La propuesta de robótica es increíble."
+                &quot;Mis hijos están felices y motivados cada día. La propuesta de robótica es increíble.&quot;
               </Text>
               <Text className="font-black text-blue-900 uppercase text-xs">Juan Pérez - Padre de Secundaria</Text>
             </View>
             <View className="bg-white p-8 rounded-3xl shadow-lg flex-1">
               <Text className="text-yellow-400 mb-4">⭐⭐⭐⭐⭐</Text>
               <Text className="italic text-slate-600 text-sm mb-4">
-                "Una educación de calidad que realmente prepara para los desafíos del mundo actual."
+                &quot;Una educación de calidad que realmente prepara para los desafíos del mundo actual.&quot;
               </Text>
               <Text className="font-black text-blue-900 uppercase text-xs">Ana Gómez - Madre de Inicial</Text>
             </View>
