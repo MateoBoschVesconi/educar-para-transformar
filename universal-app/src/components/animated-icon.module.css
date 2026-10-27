@@ -4,3 +4,10 @@
   width: 128px;
   height: 128px;
 }
+
+@media (max-width: 640px) {
+  .expoLogoBackground {
+    width: 64px;
+    height: 64px;
+  }
+}

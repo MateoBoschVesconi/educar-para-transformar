@@ -66,7 +66,7 @@ export default function LandingPage() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50">
+    <SafeAreaView className="flex-1 bg-slate-50 p-4 md:p-8">
       <ScrollView className="flex-1">
         
         {/* HEADER */}
@@ -122,7 +122,7 @@ export default function LandingPage() {
 
         {/* HERO SECTION */}
         <View className="px-4 mt-6 items-center">
-          <View className="w-full max-w-6xl h-[450px] rounded-[2.5rem] overflow-hidden relative shadow-2xl">
+          <View className="w-full max-w-full md:max-w-6xl h-64 md:h-[450px] rounded-[2.5rem] overflow-hidden relative shadow-2xl">
             <Image 
               source={{ uri: 'https://images.unsplash.com/photo-1523050853063-91589436026e?auto=format&fit=crop&w=1200' }} 
               className="absolute w-full h-full"
