@@ -1,10 +1,11 @@
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, TextInput, Alert, Modal, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, TextInput, Alert, ActivityIndicator, Modal, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { supabase, supabaseUrl, supabaseAnonKey } from '../lib/supabase';
 import { createClient } from '@supabase/supabase-js';
 import { generarHtmlReciboPago, descargarOImprimirPDF } from '../utils/pdf-documents';
+import { FormModal } from '../components/form-modal';
 
 interface Inscripcion {
   id: number;
@@ -506,6 +507,9 @@ export default function AdminDashboard() {
       .reduce((sum, c) => sum + c.monto, 0);
   }, [cuotas]);
 
+  const { width } = useWindowDimensions();
+  const isWide = width >= 840;
+
   if (checkingAuth) {
     return (
       <SafeAreaView className="flex-1 justify-center items-center bg-slate-900">
@@ -515,105 +519,104 @@ export default function AdminDashboard() {
     );
   }
 
+  const tabClass = (active: boolean) =>
+    `flex-row items-center gap-2 px-3 py-3 rounded-xl ${isWide ? 'justify-between' : 'mr-2'} ${active ? 'bg-orange-600' : 'bg-slate-800'}`;
+
   return (
-    <SafeAreaView className="flex-1 bg-slate-100 flex-col md:flex-row">
-      
-      {/* SIDEBAR LATERAL (DESKTOP) */}
-      <View className="w-full md:w-64 bg-slate-900 flex-col justify-between p-6 shadow-2xl">
+    <SafeAreaView className="flex-1 bg-slate-100" edges={['top', 'left', 'right']}>
+      <View className={`flex-1 ${isWide ? 'flex-row' : 'flex-col'}`}>
+
+      {isWide ? (
+      <View className="w-64 bg-slate-900 justify-between p-6">
         <View>
-          <View className="mb-6 flex-row md:flex-col items-center gap-3">
-            <View className="w-12 h-12 bg-orange-600 rounded-2xl items-center justify-center shadow-lg">
+          <View className="mb-6 items-center gap-3">
+            <View className="w-12 h-12 bg-orange-600 rounded-2xl items-center justify-center">
               <Text className="text-white text-xl font-black">🛡️</Text>
             </View>
-            <View className="flex-1 md:items-center">
+            <View className="items-center">
               <Text className="text-white font-black uppercase text-sm tracking-wider">Panel Admin</Text>
               <Text className="text-[10px] text-orange-400 font-bold uppercase">Educar para Transformar</Text>
-              <Text className="text-[10px] text-slate-400 mt-0.5">{adminEmail}</Text>
+              <Text className="text-[10px] text-slate-400 mt-0.5 text-center" numberOfLines={1}>{adminEmail}</Text>
             </View>
           </View>
-
-          {/* Menú de navegación */}
           <View className="gap-2">
-            <TouchableOpacity 
-              onPress={() => setActiveTab('inscripciones')}
-              className={`flex-row items-center justify-between p-3 rounded-xl ${activeTab === 'inscripciones' ? 'bg-orange-600' : 'hover:bg-slate-800'}`}
-            >
-              <View className="flex-row items-center gap-3">
-                <Text className="text-white text-sm">📋</Text>
-                <Text className="text-white font-bold text-xs uppercase tracking-wider">Inscripciones</Text>
-              </View>
-              <View className="bg-slate-900/60 px-2 py-0.5 rounded-full">
-                <Text className="text-white text-[10px] font-bold">{inscripciones.length}</Text>
-              </View>
+            <TouchableOpacity onPress={() => setActiveTab('inscripciones')} className={tabClass(activeTab === 'inscripciones')}>
+              <Text className="text-white text-sm">📋</Text>
+              <Text className="text-white font-bold text-xs uppercase flex-1">Inscripciones</Text>
+              <Text className="text-white text-[10px] font-bold">{inscripciones.length}</Text>
             </TouchableOpacity>
-
-            <TouchableOpacity 
-              onPress={() => setActiveTab('cuotas')}
-              className={`flex-row items-center justify-between p-3 rounded-xl ${activeTab === 'cuotas' ? 'bg-orange-600' : 'hover:bg-slate-800'}`}
-            >
-              <View className="flex-row items-center gap-3">
-                <Text className="text-white text-sm">💳</Text>
-                <Text className="text-white font-bold text-xs uppercase tracking-wider">Cuotas y Pagos</Text>
-              </View>
-              <View className="bg-slate-900/60 px-2 py-0.5 rounded-full">
-                <Text className="text-white text-[10px] font-bold">{cuotas.filter(c => c.estado !== 'Pagada').length}</Text>
-              </View>
+            <TouchableOpacity onPress={() => setActiveTab('cuotas')} className={tabClass(activeTab === 'cuotas')}>
+              <Text className="text-white text-sm">💳</Text>
+              <Text className="text-white font-bold text-xs uppercase flex-1">Cuotas</Text>
+              <Text className="text-white text-[10px] font-bold">{cuotas.filter(c => c.estado !== 'Pagada').length}</Text>
             </TouchableOpacity>
-
-            <TouchableOpacity 
-              onPress={() => setActiveTab('alumnos')}
-              className={`flex-row items-center justify-between p-3 rounded-xl ${activeTab === 'alumnos' ? 'bg-orange-600' : 'hover:bg-slate-800'}`}
-            >
-              <View className="flex-row items-center gap-3">
-                <Text className="text-white text-sm">👥</Text>
-                <Text className="text-white font-bold text-xs uppercase tracking-wider">Padrón Alumnos</Text>
-              </View>
-              <View className="bg-slate-900/60 px-2 py-0.5 rounded-full">
-                <Text className="text-white text-[10px] font-bold">{alumnos.length}</Text>
-              </View>
+            <TouchableOpacity onPress={() => setActiveTab('alumnos')} className={tabClass(activeTab === 'alumnos')}>
+              <Text className="text-white text-sm">👥</Text>
+              <Text className="text-white font-bold text-xs uppercase flex-1">Padrón</Text>
+              <Text className="text-white text-[10px] font-bold">{alumnos.length}</Text>
             </TouchableOpacity>
-
-            <TouchableOpacity 
-              onPress={() => setActiveTab('sql')}
-              className={`flex-row items-center justify-between p-3 rounded-xl ${activeTab === 'sql' ? 'bg-blue-700' : 'bg-slate-800 hover:bg-slate-700'} mt-2 border border-slate-700`}
-            >
-              <View className="flex-row items-center gap-3">
-                <Text className="text-white text-sm">⚡</Text>
-                <Text className="text-white font-bold text-xs uppercase tracking-wider">Supabase SQL</Text>
-              </View>
-              <Text className="text-emerald-400 text-xs">●</Text>
+            <TouchableOpacity onPress={() => setActiveTab('sql')} className={tabClass(activeTab === 'sql')}>
+              <Text className="text-white text-sm">⚡</Text>
+              <Text className="text-white font-bold text-xs uppercase flex-1">Supabase SQL</Text>
             </TouchableOpacity>
           </View>
         </View>
-
-        {/* Acciones del pie */}
         <View className="gap-2 mt-6">
-          <TouchableOpacity 
-            onPress={() => router.push('/')}
-            className="bg-slate-800 p-3 rounded-xl flex-row items-center justify-center gap-2"
-          >
-            <Text className="text-slate-300 text-xs">🌐</Text>
-            <Text className="text-slate-300 font-bold uppercase text-[10px] tracking-wider">Ver Web Pública</Text>
+          <TouchableOpacity onPress={() => router.push('/')} className="bg-slate-800 p-3 rounded-xl items-center">
+            <Text className="text-slate-300 font-bold uppercase text-[10px]">Ver web pública</Text>
           </TouchableOpacity>
-
-          <TouchableOpacity 
-            onPress={handleSignOut}
-            className="bg-red-600/90 hover:bg-red-600 p-3 rounded-xl flex-row items-center justify-center gap-2"
-          >
-            <Text className="text-white text-xs">🚪</Text>
-            <Text className="text-white font-black uppercase text-[10px] tracking-wider">Cerrar Sesión</Text>
+          <TouchableOpacity onPress={handleSignOut} className="bg-red-600 p-3 rounded-xl items-center">
+            <Text className="text-white font-black uppercase text-[10px]">Cerrar sesión</Text>
           </TouchableOpacity>
         </View>
       </View>
+      ) : (
+      <View className="bg-slate-900 px-4 pt-3 pb-3">
+        <View className="flex-row items-center justify-between mb-3">
+          <View className="flex-1 pr-3">
+            <Text className="text-white font-black uppercase text-sm">Panel Admin</Text>
+            <Text className="text-[10px] text-orange-300" numberOfLines={1}>{adminEmail}</Text>
+          </View>
+          <TouchableOpacity onPress={handleSignOut} className="bg-red-600 px-3 py-2 rounded-xl">
+            <Text className="text-white text-[10px] font-black uppercase">Salir</Text>
+          </TouchableOpacity>
+        </View>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          <TouchableOpacity onPress={() => setActiveTab('inscripciones')} className={tabClass(activeTab === 'inscripciones')}>
+            <Text className="text-white text-sm">📋</Text>
+            <Text className="text-white font-bold text-xs uppercase">Inscripciones</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => setActiveTab('cuotas')} className={tabClass(activeTab === 'cuotas')}>
+            <Text className="text-white text-sm">💳</Text>
+            <Text className="text-white font-bold text-xs uppercase">Cuotas</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => setActiveTab('alumnos')} className={tabClass(activeTab === 'alumnos')}>
+            <Text className="text-white text-sm">👥</Text>
+            <Text className="text-white font-bold text-xs uppercase">Padrón</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => setActiveTab('sql')} className={tabClass(activeTab === 'sql')}>
+            <Text className="text-white text-sm">⚡</Text>
+            <Text className="text-white font-bold text-xs uppercase">SQL</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => router.push('/')} className="px-3 py-3 rounded-xl bg-slate-800">
+            <Text className="text-slate-200 font-bold text-xs uppercase">Web</Text>
+          </TouchableOpacity>
+        </ScrollView>
+      </View>
+      )}
 
-      {/* CONTENIDO PRINCIPAL */}
-      <View className="flex-1 p-4 md:p-8">
+      <ScrollView
+        className="flex-1"
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ flexGrow: 1, padding: 16, paddingBottom: 48 }}
+      >
         
         {/* HEADER SUPERIOR */}
-        <View className="flex-col md:flex-row justify-between items-start md:items-center bg-white p-6 rounded-2xl shadow-sm mb-6 gap-4">
+        <View className="bg-white p-4 rounded-2xl mb-4 gap-3">
           <View>
-            <View className="flex-row items-center gap-2">
-              <Text className="text-xl md:text-2xl font-black text-slate-800">
+            <View className="flex-row flex-wrap items-center gap-2">
+              <Text className="text-lg font-black text-slate-800 flex-1">
                 {activeTab === 'inscripciones' && 'Gestión de Nuevas Solicitudes de Vacantes'}
                 {activeTab === 'cuotas' && 'Gestión Financiera de Cuotas Escolares'}
                 {activeTab === 'alumnos' && 'Padrón y Perfiles de Alumnos Inscriptos'}
@@ -628,7 +631,7 @@ export default function AdminDashboard() {
             </Text>
           </View>
 
-          <View className="flex-row gap-2">
+          <View className="flex-row flex-wrap gap-2">
             <TouchableOpacity 
               onPress={loadAllData}
               disabled={loading}
@@ -667,7 +670,7 @@ export default function AdminDashboard() {
         </View>
 
         {/* METRICAS RESUMIDAS */}
-        <View className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <View className="gap-3 mb-4">
           <View className="bg-white p-5 rounded-2xl shadow-sm border-l-4 border-orange-500">
             <Text className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Solicitudes Nuevas</Text>
             <Text className="text-2xl font-black text-slate-800 mt-1">{inscripciones.length}</Text>
@@ -707,7 +710,7 @@ export default function AdminDashboard() {
                 />
               </View>
 
-              <View className="flex-row gap-2 w-full md:w-auto overflow-x-auto">
+              <View className="flex-row flex-wrap gap-2 w-full">
                 {['Todos', 'Nivel Inicial', 'Nivel Primario', 'Nivel Secundario'].map(nivel => (
                   <TouchableOpacity
                     key={nivel}
@@ -908,8 +911,8 @@ export default function AdminDashboard() {
         {/* ---------------- PESTAÑA 3: PADRÓN DE ALUMNOS ---------------- */}
         {activeTab === 'alumnos' && (
           <View className="flex-1 bg-white p-6 rounded-2xl shadow-sm">
-            <View className="flex-row justify-between items-center mb-6">
-              <View>
+            <View className="flex-col md:flex-row md:justify-between md:items-center gap-3 mb-6">
+              <View className="flex-1">
                 <Text className="text-base font-black text-slate-800 uppercase tracking-wider">Padrón de Estudiantes ({alumnos.length})</Text>
                 <Text className="text-xs text-slate-400">Haz clic en &quot;Ver Perfil y Cuotas&quot; para consultar y cobrar cuotas de cada alumno.</Text>
               </View>
@@ -1041,6 +1044,7 @@ ON public.cuotas FOR ALL USING (true) WITH CHECK (true);
           </ScrollView>
         )}
 
+      </ScrollView>
       </View>
 
       {/* ---------------- MODAL 1: FICHA DE INSCRIPCIÓN ---------------- */}
@@ -1048,7 +1052,7 @@ ON public.cuotas FOR ALL USING (true) WITH CHECK (true);
         <View className="flex-1 justify-center items-center bg-black/60 p-4">
           <View className="bg-white p-6 rounded-3xl w-full max-w-lg shadow-2xl">
             <View className="flex-row justify-between items-center border-b border-slate-100 pb-4 mb-4">
-              <Text className="text-lg font-black text-slate-800 uppercase">Ficha de Solicitud de Vacante</Text>
+              <Text className="flex-1 pr-3 text-lg font-black text-slate-800 uppercase">Ficha de Solicitud de Vacante</Text>
               <TouchableOpacity onPress={() => setModalInscripcionVisible(false)}>
                 <Text className="text-slate-400 font-bold text-xl">✕</Text>
               </TouchableOpacity>
@@ -1097,9 +1101,7 @@ ON public.cuotas FOR ALL USING (true) WITH CHECK (true);
       </Modal>
 
       {/* ---------------- MODAL 2: CREAR PERFIL DEL ALUMNO (AL INSCRIBIR) ---------------- */}
-      <Modal visible={modalCrearPerfilVisible} transparent animationType="fade">
-        <View className="flex-1 justify-center items-center bg-black/60 p-4">
-          <View className="bg-white p-6 rounded-3xl w-full max-w-lg shadow-2xl">
+      <FormModal visible={modalCrearPerfilVisible}>
             <View className="flex-row justify-between items-center border-b border-slate-100 pb-4 mb-4">
               <View>
                 <Text className="text-lg font-black text-slate-800 uppercase">Crear Perfil del Alumno</Text>
@@ -1215,26 +1217,24 @@ ON public.cuotas FOR ALL USING (true) WITH CHECK (true);
                 <Text className="text-white font-black uppercase text-xs tracking-wider">Crear Perfil y Generar Cuotas</Text>
               </TouchableOpacity>
             </View>
-          </View>
-        </View>
-      </Modal>
+      </FormModal>
 
       {/* ---------------- MODAL 3: PERFIL DEL ALUMNO Y SUS CUOTAS DESDE HOY ---------------- */}
       <Modal visible={modalPerfilAlumnoVisible} transparent animationType="fade">
         <View className="flex-1 justify-center items-center bg-black/60 p-4">
-          <View className="bg-white p-6 rounded-3xl w-full max-w-2xl max-h-[90vh] shadow-2xl flex-col">
+          <View className="bg-white p-6 rounded-3xl w-full max-w-2xl shadow-2xl flex-col" style={{ maxHeight: '90%' }}>
             
             {/* Header del Perfil */}
             <View className="flex-row justify-between items-start border-b border-slate-100 pb-4 mb-4">
               {alumnoSeleccionadoPerfil && (
-                <View className="flex-row items-center gap-3">
+                <View className="flex-1 flex-row items-center gap-3">
                   <View className="w-12 h-12 bg-blue-900 rounded-2xl items-center justify-center shadow-md">
                     <Text className="text-white font-black text-lg">
                       {alumnoSeleccionadoPerfil.nombre.charAt(0).toUpperCase()}
                     </Text>
                   </View>
-                  <View>
-                    <View className="flex-row items-center gap-2">
+                  <View className="flex-1">
+                    <View className="flex-row flex-wrap items-center gap-2">
                       <Text className="text-xl font-black text-slate-800">{alumnoSeleccionadoPerfil.nombre}</Text>
                       <View className="bg-emerald-100 px-2.5 py-0.5 rounded-full">
                         <Text className="text-[10px] font-black text-emerald-800 uppercase">{alumnoSeleccionadoPerfil.estado}</Text>
@@ -1243,7 +1243,7 @@ ON public.cuotas FOR ALL USING (true) WITH CHECK (true);
                     <Text className="text-xs text-slate-500 mt-0.5">
                       DNI: <Text className="font-bold text-slate-700">{alumnoSeleccionadoPerfil.dni}</Text> • {alumnoSeleccionadoPerfil.nivel} • 📧 {alumnoSeleccionadoPerfil.email}
                     </Text>
-                    <View className="flex-row gap-1.5 mt-2">
+                    <View className="flex-row flex-wrap gap-1.5 mt-2">
                       <View className="bg-blue-100 px-2 py-0.5 rounded-md">
                         <Text className="text-[10px] font-bold text-blue-900">🇬🇧 Inglés Cambridge B1</Text>
                       </View>
@@ -1264,7 +1264,7 @@ ON public.cuotas FOR ALL USING (true) WITH CHECK (true);
               <View className="bg-gradient-to-r from-orange-500 to-amber-500 p-5 rounded-2xl shadow-md mb-4 bg-orange-600">
                 <View className="flex-col md:flex-row justify-between items-start md:items-center gap-3">
                   <View>
-                    <View className="flex-row items-center gap-2">
+                    <View className="flex-row flex-wrap items-center gap-2">
                       <Text className="text-white font-bold text-xs uppercase tracking-wider">Cuota de este mes ({cuotaMesActualAlumno.mes})</Text>
                       <View className={`px-2 py-0.5 rounded-full ${cuotaMesActualAlumno.estado === 'Pagada' ? 'bg-emerald-400' : 'bg-amber-300'}`}>
                         <Text className="text-slate-900 text-[10px] font-black uppercase">{cuotaMesActualAlumno.estado}</Text>
@@ -1312,8 +1312,8 @@ ON public.cuotas FOR ALL USING (true) WITH CHECK (true);
 
             {/* LISTA DE TODAS LAS CUOTAS DESDE HOY EN ADELANTE */}
             <View className="flex-1">
-              <View className="flex-row justify-between items-center mb-3">
-                <Text className="font-black text-slate-800 text-xs uppercase tracking-wider">
+              <View className="flex-col md:flex-row md:justify-between md:items-center gap-2 mb-3">
+                <Text className="md:flex-1 font-black text-slate-800 text-xs uppercase tracking-wider">
                   Cuotas a pagar desde el día de hoy en adelante ({cuotasDelAlumnoPerfil.length})
                 </Text>
                 <TouchableOpacity 
@@ -1400,9 +1400,7 @@ ON public.cuotas FOR ALL USING (true) WITH CHECK (true);
       </Modal>
 
       {/* ---------------- MODAL 4: EMITIR NUEVA CUOTA MANUAL ---------------- */}
-      <Modal visible={modalNuevaCuotaVisible} transparent animationType="fade">
-        <View className="flex-1 justify-center items-center bg-black/60 p-4">
-          <View className="bg-white p-6 rounded-3xl w-full max-w-md shadow-2xl">
+      <FormModal visible={modalNuevaCuotaVisible}>
             <View className="flex-row justify-between items-center border-b border-slate-100 pb-4 mb-4">
               <Text className="text-lg font-black text-slate-800 uppercase">Emitir Nueva Cuota</Text>
               <TouchableOpacity onPress={() => setModalNuevaCuotaVisible(false)}>
@@ -1445,14 +1443,10 @@ ON public.cuotas FOR ALL USING (true) WITH CHECK (true);
                 <Text className="text-white font-black uppercase text-xs tracking-wider">Guardar y Emitir Cuota</Text>
               </TouchableOpacity>
             </View>
-          </View>
-        </View>
-      </Modal>
+      </FormModal>
 
       {/* ---------------- MODAL ALTA DE NUEVO ALUMNO MANUAL ---------------- */}
-      <Modal visible={modalNuevoAlumnoVisible} transparent animationType="fade">
-        <View className="flex-1 justify-center items-center bg-black/60 p-4">
-          <View className="bg-white p-6 rounded-3xl w-full max-w-md shadow-2xl">
+      <FormModal visible={modalNuevoAlumnoVisible}>
             <View className="flex-row justify-between items-center border-b border-slate-100 pb-4 mb-4">
               <Text className="text-lg font-black text-slate-800 uppercase">Alta de Nuevo Alumno</Text>
               <TouchableOpacity onPress={() => setModalNuevoAlumnoVisible(false)}>
@@ -1569,9 +1563,7 @@ ON public.cuotas FOR ALL USING (true) WITH CHECK (true);
                 <Text className="text-white font-black uppercase text-xs tracking-wider">Guardar Alumno y Crear Cuenta</Text>
               </TouchableOpacity>
             </View>
-          </View>
-        </View>
-      </Modal>
+      </FormModal>
 
     </SafeAreaView>
   );

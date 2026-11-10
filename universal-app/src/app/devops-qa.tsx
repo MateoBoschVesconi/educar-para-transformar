@@ -32,8 +32,8 @@ export default function DevOpsQAPage() {
         
         {/* HEADER */}
         <View className="bg-blue-900 px-6 py-6 border-b border-blue-950 shadow-md">
-          <View className="container mx-auto flex-row justify-between items-center">
-            <View>
+          <View className="container mx-auto flex-col md:flex-row md:justify-between md:items-center gap-4">
+            <View className="flex-1">
               <Text className="text-white text-xs uppercase tracking-widest font-bold text-blue-300">
                 Centro Educativo Educar Para Transformar
               </Text>
@@ -45,7 +45,7 @@ export default function DevOpsQAPage() {
               </Text>
             </View>
 
-            <View className="flex-row gap-3">
+            <View className="flex-row flex-wrap gap-3">
               <TouchableOpacity
                 onPress={() => router.push('/')}
                 className="bg-blue-800 hover:bg-blue-700 px-4 py-2 rounded-xl border border-blue-600"
@@ -63,17 +63,17 @@ export default function DevOpsQAPage() {
         </View>
 
         {/* NAVEGACIÓN ENTRE UNIDAD 4 Y UNIDAD 5 */}
-        <View className="bg-white border-b border-slate-200 sticky top-0 z-40">
-          <View className="container mx-auto px-6 py-3 flex-row gap-4">
+        <View className="bg-white border-b border-slate-200">
+          <View className="container mx-auto px-6 py-3 flex-col md:flex-row gap-4">
             <TouchableOpacity
               onPress={() => setActiveTab('u5')}
-              className={`px-5 py-2.5 rounded-xl border-2 flex-row items-center gap-2 ${
+              className={`flex-1 px-5 py-2.5 rounded-xl border-2 flex-row items-center gap-2 ${
                 activeTab === 'u5'
                   ? 'bg-blue-900 border-blue-900'
                   : 'bg-slate-100 border-transparent hover:bg-slate-200'
               }`}
             >
-              <Text className={activeTab === 'u5' ? 'text-white font-black' : 'text-slate-700 font-bold'}>
+              <Text className={`flex-1 text-sm md:text-base ${activeTab === 'u5' ? 'text-white font-black' : 'text-slate-700 font-bold'}`}>
                 🧪 Unidad 5: Pruebas de Software (QA & Testing)
               </Text>
               <View className="bg-orange-500 px-2 py-0.5 rounded-full">
@@ -83,13 +83,13 @@ export default function DevOpsQAPage() {
 
             <TouchableOpacity
               onPress={() => setActiveTab('u4')}
-              className={`px-5 py-2.5 rounded-xl border-2 flex-row items-center gap-2 ${
+              className={`flex-1 px-5 py-2.5 rounded-xl border-2 flex-row items-center gap-2 ${
                 activeTab === 'u4'
                   ? 'bg-blue-900 border-blue-900'
                   : 'bg-slate-100 border-transparent hover:bg-slate-200'
               }`}
             >
-              <Text className={activeTab === 'u4' ? 'text-white font-black' : 'text-slate-700 font-bold'}>
+              <Text className={`flex-1 text-sm md:text-base ${activeTab === 'u4' ? 'text-white font-black' : 'text-slate-700 font-bold'}`}>
                 ⚙️ Unidad 4: Optimización Ciclo de Desarrollo & CI/CD
               </Text>
               <View className="bg-blue-700 px-2 py-0.5 rounded-full">
@@ -110,8 +110,8 @@ export default function DevOpsQAPage() {
 
               {/* CARD 1: SELECCIÓN DE FUNCIONALIDAD Y REQUERIMIENTO */}
               <View className="bg-white rounded-3xl p-6 shadow-sm border border-slate-200">
-                <View className="flex-row items-center justify-between pb-4 border-b border-slate-100">
-                  <View>
+                <View className="flex-col md:flex-row md:items-center md:justify-between gap-3 pb-4 border-b border-slate-100">
+                  <View className="flex-1">
                     <Text className="text-xs font-black uppercase tracking-wider text-orange-600">
                       Parte 2 - Ítem 1 y 2
                     </Text>
@@ -119,7 +119,7 @@ export default function DevOpsQAPage() {
                       Funcionalidad y Requerimiento de Verificación Seleccionado
                     </Text>
                   </View>
-                  <View className="bg-emerald-100 px-3 py-1 rounded-full border border-emerald-300">
+                  <View className="bg-emerald-100 self-start px-3 py-1 rounded-full border border-emerald-300">
                     <Text className="text-emerald-800 text-xs font-black">Diferente a Unidad 4</Text>
                   </View>
                 </View>
@@ -254,8 +254,8 @@ export default function DevOpsQAPage() {
                   </Text>
                 </View>
 
-                <View className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <View className="p-4 bg-slate-50 rounded-2xl border border-slate-200">
+                <View className="mt-4 flex flex-col md:flex-row md:flex-wrap gap-4">
+                  <View className="p-4 bg-slate-50 rounded-2xl border border-slate-200 md:w-[48%]">
                     <Text className="font-black text-blue-900 text-sm">📐 1. Linter Configurado en IDE</Text>
                     <Text className="text-xs text-slate-600 mt-2">
                       Configuración activa en <Text className="font-mono text-blue-700">.vscode/settings.json</Text> con ESLint y Prettier. Corrige automáticamente problemas al guardar y valida TypeScript en tiempo real.
@@ -265,7 +265,7 @@ export default function DevOpsQAPage() {
                     </View>
                   </View>
 
-                  <View className="p-4 bg-slate-50 rounded-2xl border border-slate-200">
+                  <View className="p-4 bg-slate-50 rounded-2xl border border-slate-200 md:w-[48%]">
                     <Text className="font-black text-blue-900 text-sm">🪝 2. Pre-commit Hooks con Husky</Text>
                     <Text className="text-xs text-slate-600 mt-2">
                       Implementado en <Text className="font-mono text-blue-700">.husky/pre-commit</Text>. Intercepta el commit de Git y bloquea la confirmación si existen fallos de sintaxis o formato.
@@ -275,7 +275,7 @@ export default function DevOpsQAPage() {
                     </View>
                   </View>
 
-                  <View className="p-4 bg-slate-50 rounded-2xl border border-slate-200">
+                  <View className="p-4 bg-slate-50 rounded-2xl border border-slate-200 md:w-[48%]">
                     <Text className="font-black text-blue-900 text-sm">📑 3. Políticas de Pull Requests (PR)</Text>
                     <Text className="text-xs text-slate-600 mt-2">
                       Plantilla obligatoria en <Text className="font-mono text-blue-700">.github/pull_request_template.md</Text> y manual de contribución <Text className="font-mono text-blue-700">CONTRIBUTING.md</Text> con checklist de revisión y aprobación requerida de pares.
@@ -285,7 +285,7 @@ export default function DevOpsQAPage() {
                     </View>
                   </View>
 
-                  <View className="p-4 bg-slate-50 rounded-2xl border border-slate-200">
+                  <View className="p-4 bg-slate-50 rounded-2xl border border-slate-200 md:w-[48%]">
                     <Text className="font-black text-blue-900 text-sm">🛡️ 4. Orquestador SonarQube / SonarCloud</Text>
                     <Text className="text-xs text-slate-600 mt-2">
                       Configuración formal en <Text className="font-mono text-blue-700">sonar-project.properties</Text> y job de CI. Evalúa deuda técnica, bugs, vulnerabilidades y calidad de código de forma centralizada.
@@ -339,9 +339,9 @@ export default function DevOpsQAPage() {
                     <TouchableOpacity
                       onPress={handleRunDynamicTest}
                       disabled={isRunningTest}
-                      className="bg-emerald-600 hover:bg-emerald-500 px-8 py-4 rounded-2xl shadow-lg flex-row items-center gap-3"
+                      className="bg-emerald-600 hover:bg-emerald-500 px-6 md:px-8 py-4 rounded-2xl shadow-lg flex-row items-center gap-3"
                     >
-                      <Text className="text-white font-black text-sm uppercase">
+                      <Text className="text-white font-black text-xs md:text-sm uppercase text-center">
                         {isRunningTest ? '⏳ Ejecutando Pruebas Dinámicas...' : '▶️ Ejecutar Verificación Dinámica QA en Vivo'}
                       </Text>
                     </TouchableOpacity>
@@ -368,8 +368,8 @@ export default function DevOpsQAPage() {
                   </Text>
                 </View>
 
-                <View className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <View className="p-4 bg-slate-50 rounded-2xl border border-slate-200">
+                <View className="mt-4 flex flex-col md:flex-row md:flex-wrap gap-4">
+                  <View className="p-4 bg-slate-50 rounded-2xl border border-slate-200 md:w-[48%]">
                     <Text className="font-black text-blue-900 text-sm">📊 Métrica 1: Cobertura de Código en Pruebas (Test Coverage)</Text>
                     <Text className="text-xs text-slate-600 mt-2">
                       <Text className="font-bold">Cómo se evalúa:</Text> Mediante Jest y Cypress Code Coverage reportando en formato LCOV. Mide el porcentaje de líneas, funciones y sentencias ejecutadas por las pruebas.
@@ -379,7 +379,7 @@ export default function DevOpsQAPage() {
                     </View>
                   </View>
 
-                  <View className="p-4 bg-slate-50 rounded-2xl border border-slate-200">
+                  <View className="p-4 bg-slate-50 rounded-2xl border border-slate-200 md:w-[48%]">
                     <Text className="font-black text-blue-900 text-sm">🛡️ Métrica 2: Calidad de Código y Deuda Técnica (SonarCloud Quality Gate)</Text>
                     <Text className="text-xs text-slate-600 mt-2">
                       <Text className="font-bold">Cómo se evalúa:</Text> A través del escaneo automatizado en SonarCloud. Mide la tasa de deuda técnica (Technical Debt Ratio &lt; 5%), 0 vulnerabilidades de seguridad críticas y calificación A en Mantenibilidad.
@@ -499,7 +499,7 @@ export default function DevOpsQAPage() {
                 </View>
 
                 <View className="mt-4 border border-slate-200 rounded-2xl overflow-hidden">
-                  <View className="bg-slate-100 p-3 flex-row border-b border-slate-200">
+                  <View className="bg-slate-100 p-3 flex-row border-b border-slate-200 hidden md:flex">
                     <Text className="w-1/4 font-bold text-xs text-slate-700">Contenido</Text>
                     <Text className="w-1/6 font-bold text-xs text-slate-700">Estado</Text>
                     <Text className="w-1/3 font-bold text-xs text-slate-700">Herramientas / Estrategias</Text>
@@ -519,15 +519,15 @@ export default function DevOpsQAPage() {
                     { c: 'Wikis', st: 'Aplicado', h: 'Carpeta Doc/ y GitHub Wiki', f: 'Manual de arquitectura y guías' },
                     { c: 'Tablero Kanban', st: 'Aplicado', h: 'GitHub Projects Kanban', f: 'Backlog -> In Progress -> Done' },
                   ].map((row, idx) => (
-                    <View key={idx} className={`p-3 flex-row border-b border-slate-100 ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'}`}>
-                      <Text className="w-1/4 font-bold text-xs text-blue-900">{row.c}</Text>
-                      <View className="w-1/6">
+                    <View key={idx} className={`p-3 flex-col md:flex-row md:items-center gap-1 md:gap-0 border-b border-slate-100 ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'}`}>
+                      <Text className="md:w-1/4 font-bold text-xs text-blue-900">{row.c}</Text>
+                      <View className="md:w-1/6">
                         <View className="bg-emerald-100 self-start px-2 py-0.5 rounded text-[10px] text-emerald-800 font-black">
                           <Text className="text-[10px] text-emerald-800 font-bold">{row.st}</Text>
                         </View>
                       </View>
-                      <Text className="w-1/3 text-xs text-slate-700">{row.h}</Text>
-                      <Text className="w-1/4 text-xs font-mono text-slate-600">{row.f}</Text>
+                      <Text className="md:w-1/3 text-xs text-slate-700">{row.h}</Text>
+                      <Text className="md:w-1/4 text-xs font-mono text-slate-600">{row.f}</Text>
                     </View>
                   ))}
                 </View>
@@ -556,32 +556,32 @@ export default function DevOpsQAPage() {
                 </View>
 
                 <View className="mt-4 border border-slate-200 rounded-2xl overflow-hidden">
-                  <View className="bg-slate-100 p-3 flex-row border-b border-slate-200">
+                  <View className="bg-slate-100 p-3 flex-row border-b border-slate-200 hidden md:flex">
                     <Text className="w-1/4 font-bold text-xs text-slate-700">Métrica</Text>
                     <Text className="w-1/4 font-bold text-xs text-slate-700">Antes de la Mejora</Text>
                     <Text className="w-1/4 font-bold text-xs text-slate-700">Estrategia Aplicada</Text>
                     <Text className="w-1/4 font-bold text-xs text-emerald-700">Resultado Obtenido</Text>
                   </View>
 
-                  <View className="p-3 flex-row border-b border-slate-100 bg-white">
-                    <Text className="w-1/4 font-bold text-xs text-slate-800">Velocidad de Entrega (Lead Time)</Text>
-                    <Text className="w-1/4 text-xs text-red-600">Manual: 4 horas / despliegue</Text>
-                    <Text className="w-1/4 text-xs text-slate-700">Pipeline automatizado GitHub Actions</Text>
-                    <Text className="w-1/4 text-xs text-emerald-700 font-bold">&lt; 3 minutos por release</Text>
+                  <View className="p-3 flex-col md:flex-row md:items-center gap-1 md:gap-0 border-b border-slate-100 bg-white">
+                    <Text className="md:w-1/4 font-bold text-xs text-slate-800">Velocidad de Entrega (Lead Time)</Text>
+                    <Text className="md:w-1/4 text-xs text-red-600">Manual: 4 horas / despliegue</Text>
+                    <Text className="md:w-1/4 text-xs text-slate-700">Pipeline automatizado GitHub Actions</Text>
+                    <Text className="md:w-1/4 text-xs text-emerald-700 font-bold">&lt; 3 minutos por release</Text>
                   </View>
 
-                  <View className="p-3 flex-row border-b border-slate-100 bg-slate-50">
-                    <Text className="w-1/4 font-bold text-xs text-slate-800">Detección de Errores de Sintaxis</Text>
-                    <Text className="w-1/4 text-xs text-red-600">Tardía en producción / PR</Text>
-                    <Text className="w-1/4 text-xs text-slate-700">Husky pre-commit + IDE ESLint on Save</Text>
-                    <Text className="w-1/4 text-xs text-emerald-700 font-bold">Inmediata (0s al guardar)</Text>
+                  <View className="p-3 flex-col md:flex-row md:items-center gap-1 md:gap-0 border-b border-slate-100 bg-slate-50">
+                    <Text className="md:w-1/4 font-bold text-xs text-slate-800">Detección de Errores de Sintaxis</Text>
+                    <Text className="md:w-1/4 text-xs text-red-600">Tardía en producción / PR</Text>
+                    <Text className="md:w-1/4 text-xs text-slate-700">Husky pre-commit + IDE ESLint on Save</Text>
+                    <Text className="md:w-1/4 text-xs text-emerald-700 font-bold">Inmediata (0s al guardar)</Text>
                   </View>
 
-                  <View className="p-3 flex-row bg-white">
-                    <Text className="w-1/4 font-bold text-xs text-slate-800">Rendimiento Web (Lighthouse)</Text>
-                    <Text className="w-1/4 text-xs text-amber-600">Performance 72 / 100</Text>
-                    <Text className="w-1/4 text-xs text-slate-700">Optimización bundle Expo + Tailwind Purge</Text>
-                    <Text className="w-1/4 text-xs text-emerald-700 font-bold">Performance 96 / 100</Text>
+                  <View className="p-3 flex-col md:flex-row md:items-center gap-1 md:gap-0 bg-white">
+                    <Text className="md:w-1/4 font-bold text-xs text-slate-800">Rendimiento Web (Lighthouse)</Text>
+                    <Text className="md:w-1/4 text-xs text-amber-600">Performance 72 / 100</Text>
+                    <Text className="md:w-1/4 text-xs text-slate-700">Optimización bundle Expo + Tailwind Purge</Text>
+                    <Text className="md:w-1/4 text-xs text-emerald-700 font-bold">Performance 96 / 100</Text>
                   </View>
                 </View>
               </View>
@@ -593,7 +593,7 @@ export default function DevOpsQAPage() {
 
         {/* FOOTER */}
         <View className="bg-slate-900 py-6 px-6 border-t border-slate-800 mt-12">
-          <View className="container mx-auto flex-row justify-between items-center">
+          <View className="container mx-auto flex-col md:flex-row md:justify-between md:items-center gap-2">
             <Text className="text-slate-400 text-xs">
               © 2026 Centro Educativo Educar Para Transformar - Cátedra de Desarrollo y Aseguramiento de Calidad
             </Text>

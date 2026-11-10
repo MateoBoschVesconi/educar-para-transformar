@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Alert, TextInput } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Alert, TextInput, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Link, useRouter } from 'expo-router';
 import { supabase } from '../lib/supabase';
@@ -48,6 +48,8 @@ const ACTIVIDADES_DISPONIBLES: Actividad[] = [
 
 export default function Dashboard() {
   const router = useRouter();
+  const { width } = useWindowDimensions();
+  const isWide = width >= 840;
 
   // Estados de navegación interna del panel
   const [activeTab, setActiveTab] = useState<'inicio' | 'cuotas' | 'actividades'>('inicio');
@@ -247,108 +249,119 @@ export default function Dashboard() {
   const cuotasPendientes = useMemo(() => cuotas.filter(c => c.estado !== 'Pagada'), [cuotas]);
   const cuotasPagadas = useMemo(() => cuotas.filter(c => c.estado === 'Pagada'), [cuotas]);
 
+  const tabButton = (active: boolean) =>
+    `flex-row items-center gap-2 px-3 py-3 rounded-xl ${isWide ? '' : 'mr-2'} ${active ? 'bg-blue-800' : 'bg-blue-950/40'}`;
+
   return (
-    <SafeAreaView className="flex-1 bg-slate-100 flex-col md:flex-row">
-      
-      {/* SIDEBAR LATERAL (DESKTOP) */}
-      <View className="w-full md:w-64 bg-blue-900 flex-col justify-between p-6 shadow-xl">
+    <SafeAreaView className="flex-1 bg-slate-100" edges={['top', 'left', 'right']}>
+      <View className={`flex-1 ${isWide ? 'flex-row' : 'flex-col'}`}>
+
+      {isWide ? (
+      <View className="w-64 bg-blue-900 justify-between p-6">
         <View>
-          <View className="mb-6 flex-row md:flex-col items-center gap-3">
+          <View className="mb-6 items-center gap-3">
             <View className="w-12 h-12 bg-white/10 rounded-2xl items-center justify-center border border-white/20">
               <Text className="text-white text-xl">🎓</Text>
             </View>
-            <View className="flex-1 md:items-center">
-              <Text className="text-white font-black uppercase text-sm tracking-wider">Educar Para Transformar</Text>
+            <View className="items-center">
+              <Text className="text-white font-black uppercase text-sm tracking-wider text-center">Educar Para Transformar</Text>
               <Text className="text-[10px] text-blue-300 font-bold uppercase">Portal del Estudiante</Text>
-              <Text className="text-[10px] text-blue-200 mt-0.5 truncate">{email}</Text>
+              <Text className="text-[10px] text-blue-200 mt-0.5 text-center" numberOfLines={1}>{email}</Text>
             </View>
           </View>
 
           <View className="gap-2">
-            <TouchableOpacity 
-              onPress={() => setActiveTab('inicio')}
-              className={`flex-row items-center gap-3 p-3 rounded-xl ${activeTab === 'inicio' ? 'bg-blue-800' : 'hover:bg-blue-800/60'}`}
-            >
+            <TouchableOpacity onPress={() => setActiveTab('inicio')} className={tabButton(activeTab === 'inicio')}>
               <Text className="text-white text-sm">🏠</Text>
               <Text className="font-bold text-xs uppercase tracking-wider text-white">Inicio & Certificado</Text>
             </TouchableOpacity>
-
-            <TouchableOpacity 
-              onPress={() => setActiveTab('cuotas')}
-              className={`flex-row items-center justify-between p-3 rounded-xl ${activeTab === 'cuotas' ? 'bg-blue-800' : 'hover:bg-blue-800/60'}`}
-            >
-              <View className="flex-row items-center gap-3">
-                <Text className="text-white text-sm">💳</Text>
-                <Text className="font-bold text-xs uppercase tracking-wider text-white">Mis Cuotas y Pagos</Text>
-              </View>
+            <TouchableOpacity onPress={() => setActiveTab('cuotas')} className={tabButton(activeTab === 'cuotas')}>
+              <Text className="text-white text-sm">💳</Text>
+              <Text className="font-bold text-xs uppercase tracking-wider text-white flex-1">Mis Cuotas</Text>
               {cuotasPendientes.length > 0 && (
                 <View className="bg-amber-500 px-2 py-0.5 rounded-full">
                   <Text className="text-slate-900 text-[9px] font-black">{cuotasPendientes.length}</Text>
                 </View>
               )}
             </TouchableOpacity>
-
-            <TouchableOpacity 
-              onPress={() => setActiveTab('actividades')}
-              className={`flex-row items-center justify-between p-3 rounded-xl ${activeTab === 'actividades' ? 'bg-blue-800' : 'hover:bg-blue-800/60'}`}
-            >
-              <View className="flex-row items-center gap-3">
-                <Text className="text-white text-sm">⚽</Text>
-                <Text className="font-bold text-xs uppercase tracking-wider text-white">Deportes e Idiomas</Text>
-              </View>
+            <TouchableOpacity onPress={() => setActiveTab('actividades')} className={tabButton(activeTab === 'actividades')}>
+              <Text className="text-white text-sm">⚽</Text>
+              <Text className="font-bold text-xs uppercase tracking-wider text-white flex-1">Deportes e Idiomas</Text>
               <View className="bg-emerald-500 px-2 py-0.5 rounded-full">
                 <Text className="text-white text-[9px] font-black">{actividadesInscriptas.length}</Text>
               </View>
             </TouchableOpacity>
-
-            <TouchableOpacity 
-              onPress={() => router.push('/devops-qa' as any)}
-              className="flex-row items-center gap-3 p-3 rounded-xl bg-orange-600 hover:bg-orange-500 mt-2 shadow-sm"
-            >
+            <TouchableOpacity onPress={() => router.push('/devops-qa' as any)} className="flex-row items-center gap-3 p-3 rounded-xl bg-orange-600 mt-2">
               <Text className="text-white text-sm">🧪</Text>
-              <Text className="font-black text-xs uppercase tracking-wider text-white">DevOps & QA (U4/U5)</Text>
+              <Text className="font-black text-xs uppercase tracking-wider text-white">DevOps & QA</Text>
             </TouchableOpacity>
-
             {email.toLowerCase() === 'admin@educar.com' && (
-              <TouchableOpacity 
-                onPress={() => router.push('/admin' as any)}
-                className="flex-row items-center gap-3 p-3 rounded-xl bg-amber-600 hover:bg-amber-500 mt-2 shadow-sm"
-              >
+              <TouchableOpacity onPress={() => router.push('/admin' as any)} className="flex-row items-center gap-3 p-3 rounded-xl bg-amber-600 mt-2">
                 <Text className="text-white text-sm">🛡️</Text>
-                <Text className="font-black text-xs uppercase tracking-wider text-white">Panel Administrador</Text>
+                <Text className="font-black text-xs uppercase tracking-wider text-white">Administración</Text>
               </TouchableOpacity>
             )}
           </View>
         </View>
-
-        <TouchableOpacity 
-          onPress={handleSignOut}
-          className="bg-red-600/90 hover:bg-red-600 p-3 rounded-xl flex-row items-center justify-center gap-2 mt-6"
-        >
+        <TouchableOpacity onPress={handleSignOut} className="bg-red-600 p-3 rounded-xl flex-row items-center justify-center gap-2 mt-6">
           <Text className="text-white">🚪</Text>
           <Text className="font-black uppercase text-xs tracking-widest text-white">Cerrar Sesión</Text>
         </TouchableOpacity>
       </View>
-
-      {/* CONTENIDO PRINCIPAL */}
-      <View className="flex-1 p-4 md:p-8">
-        
-        {/* MOBILE BACK BUTTON */}
-        <View className="md:hidden mb-4 flex-row justify-between items-center">
+      ) : (
+      <View className="bg-blue-900 px-4 pt-3 pb-3">
+        <View className="flex-row items-center justify-between mb-3">
+          <View className="flex-1 pr-3">
+            <Text className="text-white font-black uppercase text-sm">Portal del Estudiante</Text>
+            <Text className="text-[10px] text-blue-200" numberOfLines={1}>{email}</Text>
+          </View>
+          <TouchableOpacity onPress={handleSignOut} className="bg-red-600 px-3 py-2 rounded-xl">
+            <Text className="text-white text-[10px] font-black uppercase">Salir</Text>
+          </TouchableOpacity>
+        </View>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          <TouchableOpacity onPress={() => setActiveTab('inicio')} className={tabButton(activeTab === 'inicio')}>
+            <Text className="text-white text-sm">🏠</Text>
+            <Text className="font-bold text-xs uppercase text-white">Inicio</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => setActiveTab('cuotas')} className={tabButton(activeTab === 'cuotas')}>
+            <Text className="text-white text-sm">💳</Text>
+            <Text className="font-bold text-xs uppercase text-white">Cuotas</Text>
+            {cuotasPendientes.length > 0 && (
+              <View className="bg-amber-500 px-2 py-0.5 rounded-full">
+                <Text className="text-slate-900 text-[9px] font-black">{cuotasPendientes.length}</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => setActiveTab('actividades')} className={tabButton(activeTab === 'actividades')}>
+            <Text className="text-white text-sm">⚽</Text>
+            <Text className="font-bold text-xs uppercase text-white">Actividades</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => router.push('/devops-qa' as any)} className="flex-row items-center gap-2 px-3 py-3 rounded-xl bg-orange-600 mr-2">
+            <Text className="text-white text-sm">🧪</Text>
+            <Text className="font-black text-xs uppercase text-white">QA</Text>
+          </TouchableOpacity>
           <Link href="/" asChild>
-            <TouchableOpacity className="flex-row items-center gap-2 bg-white px-3 py-2 rounded-xl shadow-sm">
-              <Text className="text-slate-600 text-xs">⬅️</Text>
-              <Text className="font-bold text-xs uppercase tracking-wider text-slate-600">Volver al inicio</Text>
+            <TouchableOpacity className="flex-row items-center gap-2 px-3 py-3 rounded-xl bg-white/15">
+              <Text className="font-bold text-xs uppercase text-white">Inicio web</Text>
             </TouchableOpacity>
           </Link>
-        </View>
+        </ScrollView>
+      </View>
+      )}
 
-        {/* HEADER DE BIENVENIDA */}
-        <View className="flex-row justify-between items-center mb-6 bg-white p-6 rounded-2xl shadow-sm">
-          <View className="flex-1 pr-4">
-            <Text className="text-xl md:text-2xl font-black text-slate-800">¡Hola, {nombreAlumno}!</Text>
-            <Text className="text-xs font-bold text-slate-400 mt-1">
-              Ciclo Lectivo 2026/2027 • Cuenta Estudiante: {email}
+      <ScrollView
+        className="flex-1"
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
+      >
+
+        <View className="flex-row justify-between items-center mb-4 bg-white p-4 rounded-2xl">
+          <View className="flex-1 pr-3">
+            <Text className="text-xl font-black text-slate-800">¡Hola, {nombreAlumno}!</Text>
+            <Text className="text-xs font-bold text-slate-400 mt-1" numberOfLines={2}>
+              Ciclo 2026/2027 • {email}
             </Text>
           </View>
           <View className="w-12 h-12 rounded-2xl bg-blue-100 items-center justify-center shadow-sm">
@@ -358,9 +371,8 @@ export default function Dashboard() {
 
         {/* ---------------- PESTAÑA 1: INICIO & CERTIFICADO DE ALUMNO REGULAR ---------------- */}
         {activeTab === 'inicio' && (
-          <ScrollView className="flex-1">
-            {/* Métricas del Estudiante */}
-            <View className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <View>
+            <View className="gap-4 mb-6">
               <View className="bg-white p-5 rounded-2xl shadow-sm border-l-4 border-blue-600">
                 <Text className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Estado Académico</Text>
                 <Text className="text-2xl font-black text-slate-800 mt-1">Regular</Text>
@@ -384,18 +396,19 @@ export default function Dashboard() {
             <View className="bg-white p-6 rounded-2xl shadow-sm mb-6 border border-slate-200">
               <View className="flex-row items-center gap-3 mb-2">
                 <Text className="text-xl">📜</Text>
-                <Text className="font-black text-slate-800 uppercase text-sm tracking-wider">
-                  Certificado de Alumno Regular (Descarga Oficial PDF)
+                <Text className="font-black text-slate-800 uppercase text-sm tracking-wider flex-1">
+                  Certificado de Alumno Regular
                 </Text>
               </View>
               <Text className="text-slate-500 text-xs mb-4 leading-relaxed">
                 Ingresá o confirmá tu DNI / legajo para descargar tu certificado oficial en formato PDF, con firmas digitales institucionales y código de verificación, listo para presentar ante autoridades.
               </Text>
               
-              <View className="flex-col md:flex-row gap-4">
+              <View className="gap-3">
                 <TextInput
-                  className="flex-1 bg-slate-50 p-4 rounded-xl border border-slate-200 text-slate-800 text-xs font-bold"
-                  placeholder="N° de Documento o Legajo (ej. 44.123.456)"
+                  className="bg-slate-50 p-4 rounded-xl border border-slate-200 text-slate-800 text-sm font-bold"
+                  placeholder="N° de Documento o Legajo"
+                  placeholderTextColor="#94a3b8"
                   value={documento}
                   onChangeText={setDocumento}
                   keyboardType="numeric"
@@ -419,19 +432,18 @@ export default function Dashboard() {
                 </Text>
               </View>
             </View>
-          </ScrollView>
+          </View>
         )}
 
-        {/* ---------------- PESTAÑA 2: GESTIÓN DE CUOTAS Y RECIBOS ---------------- */}
         {activeTab === 'cuotas' && (
-          <ScrollView className="flex-1">
-            <View className="bg-white p-6 rounded-2xl shadow-sm mb-6 border border-slate-200">
-              <View className="flex-row justify-between items-center mb-4">
-                <div>
-                  <Text className="text-base font-black text-slate-800 uppercase tracking-wider">Estado de Mis Cuotas Escolares</Text>
-                  <Text className="text-xs text-slate-400 mt-0.5">Podés notificar pagos realizados y descargar los comprobantes oficiales en PDF.</Text>
-                </div>
-                <View className="bg-blue-50 px-3 py-1 rounded-full border border-blue-200">
+          <View>
+            <View className="bg-white p-4 rounded-2xl mb-6 border border-slate-200">
+              <View className="mb-4 gap-2">
+                <View>
+                  <Text className="text-base font-black text-slate-800 uppercase tracking-wider">Estado de Mis Cuotas</Text>
+                  <Text className="text-xs text-slate-400 mt-0.5">Notificá pagos y descargá el recibo en PDF.</Text>
+                </View>
+                <View className="bg-blue-50 px-3 py-1 rounded-full border border-blue-200 self-start">
                   <Text className="text-blue-900 font-bold text-xs">{cuotasPendientes.length} Pendiente(s)</Text>
                 </View>
               </View>
@@ -441,10 +453,10 @@ export default function Dashboard() {
                 {cuotas.map((cuota) => (
                   <View 
                     key={cuota.id}
-                    className="bg-slate-50 border border-slate-200 p-4 rounded-xl flex-col md:flex-row justify-between items-start md:items-center gap-3 hover:border-blue-300 transition-all"
+                    className="bg-slate-50 border border-slate-200 p-4 rounded-xl gap-3"
                   >
                     <View className="flex-1">
-                      <View className="flex-row items-center gap-3">
+                      <View className="flex-row flex-wrap items-center gap-2">
                         <Text className="font-black text-slate-800 text-base">{cuota.mes}</Text>
                         <View className={`px-2.5 py-0.5 rounded-full ${
                           cuota.estado === 'Pagada' ? 'bg-emerald-100' :
@@ -473,7 +485,7 @@ export default function Dashboard() {
                     </View>
 
                     {/* BOTONES DE ACCIÓN */}
-                    <View className="flex-row gap-2 self-end md:self-center">
+                    <View className="flex-row flex-wrap gap-2">
                       {cuota.estado !== 'Pagada' ? (
                         <TouchableOpacity
                           onPress={() => handlePagarCuotaAlumno(cuota)}
@@ -500,25 +512,25 @@ export default function Dashboard() {
                 ))}
               </View>
             </View>
-          </ScrollView>
+          </View>
         )}
 
         {/* ---------------- PESTAÑA 3: INSCRIPCIÓN A DEPORTES E IDIOMAS ---------------- */}
         {activeTab === 'actividades' && (
-          <ScrollView className="flex-1">
-            <View className="bg-white p-6 rounded-2xl shadow-sm mb-6 border border-slate-200">
-              <View className="flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
-                <div>
+          <View>
+            <View className="bg-white p-4 rounded-2xl mb-6 border border-slate-200">
+              <View className="gap-4 mb-6">
+                <View>
                   <Text className="text-base font-black text-slate-800 uppercase tracking-wider">
-                    Talleres Deportivos y Clases de Idiomas
+                    Deportes e Idiomas
                   </Text>
                   <Text className="text-xs text-slate-400 mt-0.5">
                     Podés sumarte a las disciplinas institucionales sin costo adicional.
                   </Text>
-                </div>
+                </View>
 
                 {/* Filtro por categoría */}
-                <View className="flex-row gap-2">
+                <View className="flex-row flex-wrap gap-2">
                   {[
                     { id: 'todos', label: 'Todas' },
                     { id: 'idioma', label: 'Idiomas 🇬🇧' },
@@ -540,7 +552,7 @@ export default function Dashboard() {
               </View>
 
               {/* LISTA DE ACTIVIDADES EN FORMATO GRID / TARJETAS */}
-              <View className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <View className="gap-4">
                 {actividadesFiltradas.map((act) => {
                   const inscripto = actividadesInscriptas.includes(act.id);
 
@@ -554,9 +566,9 @@ export default function Dashboard() {
                       }`}
                     >
                       <View className="flex-row justify-between items-start mb-3">
-                        <View className="flex-row items-center gap-3">
+                        <View className="flex-row items-center gap-3 flex-1 pr-2">
                           <Text className="text-3xl">{act.icono}</Text>
-                          <View>
+                          <View className="flex-1">
                             <Text className="font-black text-slate-800 text-sm">{act.nombre}</Text>
                             <Text className="text-[10px] text-slate-500 font-semibold">{act.profesor}</Text>
                           </View>
@@ -570,10 +582,10 @@ export default function Dashboard() {
 
                       <View className="bg-white/80 p-3 rounded-xl border border-slate-200/60 mb-4 gap-1">
                         <Text className="text-xs text-slate-700">
-                          📅 <strong>Días:</strong> {act.dias}
+                          📅 Días: {act.dias}
                         </Text>
                         <Text className="text-xs text-slate-700">
-                          ⏰ <strong>Horario:</strong> {act.horario}
+                          ⏰ Horario: {act.horario}
                         </Text>
                         <Text className="text-[10px] text-orange-600 font-bold mt-0.5">
                           📌 {act.cupos}
@@ -599,9 +611,10 @@ export default function Dashboard() {
                 })}
               </View>
             </View>
-          </ScrollView>
+          </View>
         )}
 
+      </ScrollView>
       </View>
     </SafeAreaView>
   );

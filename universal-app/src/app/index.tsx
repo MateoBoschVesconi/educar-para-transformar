@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Image, TextInput, Alert, Modal, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Image, TextInput, Alert, Modal, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { supabase } from '../lib/supabase';
@@ -87,13 +87,13 @@ export default function LandingPage() {
       <ScrollView className="flex-1">
         
         {/* HEADER */}
-        <View className="bg-white border-b border-slate-200 shadow-sm sticky top-0 z-50">
+        <View className="bg-white border-b border-slate-200 shadow-sm">
           <View className="bg-blue-900 py-2 px-6 hidden md:flex items-center">
             <Text className="text-white text-[10px] font-bold uppercase tracking-widest text-center">
               Excelencia Educativa en Resistencia, Chaco - Inscripciones Ciclo Lectivo 2027 Abiertas
             </Text>
           </View>
-          <View className="container mx-auto px-4 py-4 flex-row justify-between items-center">
+          <View className="container mx-auto px-4 py-4 flex-row flex-wrap justify-between items-center gap-3">
             <View className="flex-row items-center gap-3">
               <View className="w-10 h-10 bg-blue-900 rounded-lg items-center justify-center shadow-lg">
                 <Text className="text-white font-bold">🎓</Text>
@@ -139,26 +139,26 @@ export default function LandingPage() {
 
         {/* HERO SECTION */}
         <View className="px-4 mt-6 items-center">
-          <View className="w-full max-w-full md:max-w-6xl h-64 md:h-[450px] rounded-[2.5rem] overflow-hidden relative shadow-2xl">
+          <View className="w-full max-w-full md:max-w-6xl h-80 md:h-[450px] rounded-[2.5rem] overflow-hidden relative shadow-2xl">
             <Image 
               source={{ uri: 'https://images.unsplash.com/photo-1523050853063-91589436026e?auto=format&fit=crop&w=1200' }} 
               className="absolute w-full h-full"
               resizeMode="cover"
             />
             <View className="absolute w-full h-full bg-blue-900/40" />
-            <View className="flex-1 justify-center px-12">
+            <View className="flex-1 justify-center px-6 md:px-12">
               <View className="max-w-xl">
-                <Text className="text-4xl md:text-6xl font-black mb-4 uppercase text-white">
+                <Text className="text-2xl md:text-6xl font-black mb-3 md:mb-4 uppercase text-white">
                   Inspiramos, desafiamos y empoderamos
                 </Text>
-                <Text className="mb-8 opacity-90 text-white text-base">
+                <Text className="mb-4 md:mb-8 opacity-90 text-white text-sm md:text-base">
                   A ser miembros comprometidos y éticos de una comunidad global con excelencia académica.
                 </Text>
                 <View className="flex-row gap-4">
-                  <TouchableOpacity className="bg-blue-900 px-6 py-3 rounded-xl">
+                  <TouchableOpacity className="bg-blue-900 px-4 py-2.5 md:px-6 md:py-3 rounded-xl">
                     <Text className="font-bold uppercase text-xs text-white">Conocé Más</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity className="bg-white px-6 py-3 rounded-xl">
+                  <TouchableOpacity className="bg-white px-4 py-2.5 md:px-6 md:py-3 rounded-xl">
                     <Text className="font-bold uppercase text-xs text-blue-900">Solicitar Vacante</Text>
                   </TouchableOpacity>
                 </View>
@@ -362,8 +362,17 @@ export default function LandingPage() {
 
       {/* MODAL DE LOGIN */}
       <Modal visible={modalVisible} transparent animationType="fade">
-        <View className="flex-1 justify-center items-center bg-black/50 p-4">
-          <View className="bg-white p-8 rounded-[2rem] w-full max-w-md shadow-2xl relative">
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          className="flex-1"
+        >
+          <ScrollView
+            className="flex-1 bg-black/50"
+            contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', alignItems: 'center', padding: 16 }}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
+            <View className="bg-white p-8 rounded-[2rem] w-full max-w-md shadow-2xl relative">
             <TouchableOpacity 
               onPress={() => setModalVisible(false)}
               className="absolute top-6 right-6"
@@ -417,7 +426,8 @@ export default function LandingPage() {
               </TouchableOpacity>
             </View>
           </View>
-        </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
       </Modal>
 
     </SafeAreaView>
