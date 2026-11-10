@@ -1,10 +1,10 @@
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, TextInput, Alert, Modal, ActivityIndicator, Platform } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, TextInput, Alert, Modal, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { supabase } from '../lib/supabase';
-import * as Print from 'expo-print';
-import * as Sharing from 'expo-sharing';
+import { supabase, supabaseUrl, supabaseAnonKey } from '../lib/supabase';
+import { createClient } from '@supabase/supabase-js';
+import { generarHtmlReciboPago, descargarOImprimirPDF } from '../utils/pdf-documents';
 
 interface Inscripcion {
   id: number;
@@ -37,42 +37,46 @@ interface Cuota {
   metodo_pago?: string;
 }
 
-function generarHtmlRecibo(cuota: Cuota): string {
-  const reciboNum = cuota.id ? String(cuota.id) : cuota.alumno_dni.slice(-4);
-  const fechaHoy = new Date().toLocaleDateString('es-AR');
-  const fechaPagoMostrar = cuota.fecha_pago || fechaHoy;
+function generarCuotasDesdeHoy(dni: string, nombre: string, montoBase: number = 45000): Cuota[] {
+  const mesesNombres = [
+    'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+  ];
 
-  return `
-    <html>
-      <body style="font-family: Arial, sans-serif; padding: 40px; color: #1e293b;">
-        <div style="border: 2px solid #1e3a8a; border-radius: 12px; padding: 30px; max-width: 650px; margin: 0 auto;">
-          <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 15px;">
-            <div>
-              <h1 style="color: #1e3a8a; margin: 0; font-size: 22px;">CENTRO EDUCATIVO EDUCAR PARA TRANSFORMAR</h1>
-              <p style="margin: 4px 0 0; color: #ea580c; font-weight: bold; font-size: 13px;">COMPROBANTE OFICIAL DE PAGO DE CUOTA</p>
-            </div>
-          </div>
+  const ahora = new Date();
+  const mesActual = ahora.getMonth();
+  const anioActual = ahora.getFullYear();
 
-          <div style="margin-top: 25px; background: #f8fafc; padding: 20px; border-radius: 8px;">
-            <p style="margin: 6px 0;"><strong>Recibo N°:</strong> #REC-${reciboNum}</p>
-            <p style="margin: 6px 0;"><strong>Fecha de Pago:</strong> ${fechaPagoMostrar}</p>
-            <p style="margin: 6px 0;"><strong>Alumno:</strong> ${cuota.alumno_nombre}</p>
-            <p style="margin: 6px 0;"><strong>DNI / Legajo:</strong> ${cuota.alumno_dni}</p>
-            <p style="margin: 6px 0;"><strong>Concepto:</strong> Cuota escolar - ${cuota.mes}</p>
-            <p style="margin: 6px 0;"><strong>Método de Pago:</strong> ${cuota.metodo_pago || 'Transferencia Bancaria'}</p>
-            <div style="margin-top: 15px; padding-top: 15px; border-top: 1px dashed #cbd5e1; font-size: 20px; color: #1e3a8a;">
-              <strong>Monto Abonado:</strong> $${cuota.monto.toLocaleString('es-AR')}
-            </div>
-          </div>
+  const cuotasGeneradas: Cuota[] = [];
 
-          <div style="margin-top: 40px; text-align: center; color: #64748b; font-size: 11px;">
-            <p>Este comprobante certifica la regularización del período indicado. Emitido electrónicamente por el Departamento de Administración y Finanzas.</p>
-            <p>Resistencia, Chaco — Ciclo Lectivo 2026/2027</p>
-          </div>
-        </div>
-      </body>
-    </html>
-  `;
+  // Cuota inicial de Matrícula
+  cuotasGeneradas.push({
+    alumno_dni: dni,
+    alumno_nombre: nombre,
+    mes: `Matrícula ${anioActual}`,
+    monto: montoBase + 5000,
+    estado: 'Pendiente',
+    fecha_vencimiento: `${anioActual}-${String(mesActual + 1).padStart(2, '0')}-20`
+  });
+
+  // Cuotas mensuales desde el mes actual en adelante (próximos 5 meses)
+  for (let i = 0; i < 5; i++) {
+    const d = new Date(anioActual, mesActual + i, 15);
+    const mNombre = mesesNombres[d.getMonth()];
+    const anio = d.getFullYear();
+    const vencimiento = `${anio}-${String(d.getMonth() + 1).padStart(2, '0')}-15`;
+
+    cuotasGeneradas.push({
+      alumno_dni: dni,
+      alumno_nombre: nombre,
+      mes: `${mNombre} ${anio}`,
+      monto: montoBase,
+      estado: 'Pendiente',
+      fecha_vencimiento: vencimiento
+    });
+  }
+
+  return cuotasGeneradas;
 }
 
 export default function AdminDashboard() {
@@ -95,28 +99,39 @@ export default function AdminDashboard() {
   const [searchCuota, setSearchCuota] = useState('');
   const [estadoCuotaFilter, setEstadoCuotaFilter] = useState('Todos');
 
-  // Modales
+  // Modales existentes
   const [selectedInscripcion, setSelectedInscripcion] = useState<Inscripcion | null>(null);
   const [modalInscripcionVisible, setModalInscripcionVisible] = useState(false);
   
-  // Modal Nueva Cuota
+  // Modal Crear Perfil de Alumno (al hacer clic en Inscribir)
+  const [modalCrearPerfilVisible, setModalCrearPerfilVisible] = useState(false);
+  const [inscripcionSeleccionadaParaPerfil, setInscripcionSeleccionadaParaPerfil] = useState<Inscripcion | null>(null);
+  const [perfilNombre, setPerfilNombre] = useState('');
+  const [perfilDni, setPerfilDni] = useState('');
+  const [perfilNivel, setPerfilNivel] = useState('Nivel Inicial');
+  const [perfilEmail, setPerfilEmail] = useState('');
+  const [perfilPassword, setPerfilPassword] = useState('Alumno123456!');
+  const [perfilEstado, setPerfilEstado] = useState('Regular');
+  const [perfilMontoCuota, setPerfilMontoCuota] = useState('45000');
+
+  // Modal Ver Perfil de Alumno con sus Cuotas desde hoy en adelante
+  const [modalPerfilAlumnoVisible, setModalPerfilAlumnoVisible] = useState(false);
+  const [alumnoSeleccionadoPerfil, setAlumnoSeleccionadoPerfil] = useState<Alumno | null>(null);
+
+  // Modal Nueva Cuota manual
   const [modalNuevaCuotaVisible, setModalNuevaCuotaVisible] = useState(false);
   const [cuotaDni, setCuotaDni] = useState('');
   const [cuotaNombre, setCuotaNombre] = useState('');
   const [cuotaMes, setCuotaMes] = useState('Noviembre 2026');
   const [cuotaMonto, setCuotaMonto] = useState('45000');
 
-  // Modal Registrar Pago
-  const [modalPagoVisible, setModalPagoVisible] = useState(false);
-  const [cuotaSeleccionadaPago, setCuotaSeleccionadaPago] = useState<Cuota | null>(null);
-  const [metodoPago, setMetodoPago] = useState('Transferencia Bancaria');
-
-  // Modal Nuevo Alumno
+  // Modal Nuevo Alumno manual
   const [modalNuevoAlumnoVisible, setModalNuevoAlumnoVisible] = useState(false);
   const [nuevoNombre, setNuevoNombre] = useState('');
   const [nuevoDni, setNuevoDni] = useState('');
   const [nuevoNivel, setNuevoNivel] = useState('Nivel Inicial');
   const [nuevoEmail, setNuevoEmail] = useState('');
+  const [nuevoPassword, setNuevoPassword] = useState('Alumno123456!');
 
   // Estado de persistencia de tablas en Supabase
   const [hasSupabaseAlumnos, setHasSupabaseAlumnos] = useState(false);
@@ -233,51 +248,133 @@ export default function AdminDashboard() {
     router.replace('/');
   };
 
-  // 4. Acciones sobre Inscripciones
-  const handleAprobarInscripcion = async (inscripcion: Inscripcion) => {
-    Alert.alert(
-      'Aceptar e Inscribir Alumno',
-      `¿Deseas dar de alta como alumno regular a ${inscripcion.nombre} (DNI: ${inscripcion.dni}) y generar su primera cuota?`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Confirmar Alta',
-          onPress: async () => {
-            const nuevoAlumno: Alumno = {
-              nombre: inscripcion.nombre,
-              dni: inscripcion.dni,
-              nivel: inscripcion.nivel,
-              email: inscripcion.email,
-              estado: 'Regular'
-            };
+  // 4. Iniciar Creación de Perfil de Alumno desde Inscripción
+  const handleAbrirCrearPerfil = (inscripcion: Inscripcion) => {
+    setInscripcionSeleccionadaParaPerfil(inscripcion);
+    setPerfilNombre(inscripcion.nombre);
+    setPerfilDni(inscripcion.dni);
+    setPerfilNivel(inscripcion.nivel || 'Nivel Inicial');
+    setPerfilEmail(inscripcion.email);
+    const dniNumeros = inscripcion.dni.replace(/\D/g, '') || '123456';
+    setPerfilPassword(`Alumno.${dniNumeros}!`);
+    setPerfilEstado('Regular');
+    setPerfilMontoCuota('45000');
+    setModalInscripcionVisible(false);
+    setModalCrearPerfilVisible(true);
+  };
 
-            const nuevaCuota: Cuota = {
-              alumno_dni: inscripcion.dni,
-              alumno_nombre: inscripcion.nombre,
-              mes: 'Matrícula 2027',
-              monto: 50000,
-              estado: 'Pendiente',
-              fecha_vencimiento: '2026-12-10'
-            };
+  // Confirmar creación de perfil, cuenta en Supabase Auth y generar cuotas desde hoy
+  const handleConfirmarCrearPerfil = async () => {
+    if (!perfilNombre.trim() || !perfilDni.trim() || !perfilEmail.trim()) {
+      Alert.alert('Campos requeridos', 'Por favor ingresá Nombre, DNI y Correo del alumno.');
+      return;
+    }
 
-            // Intentar persistir en Supabase si existen las tablas
-            if (hasSupabaseAlumnos) {
-              await supabase.from('alumnos').insert([nuevoAlumno]);
-            }
-            if (hasSupabaseCuotas) {
-              await supabase.from('cuotas').insert([nuevaCuota]);
-            }
+    const passFinal = perfilPassword.trim() || `Alumno.${perfilDni.replace(/\D/g, '') || '123456'}!`;
 
-            // Actualizar estado local
-            setAlumnos(prev => [nuevoAlumno, ...prev]);
-            setCuotas(prev => [nuevaCuota, ...prev]);
-
-            setModalInscripcionVisible(false);
-            Alert.alert('¡Alumno Inscripto!', `${inscripcion.nombre} fue añadido al padrón de alumnos y se generó su matrícula.`);
+    // 1. Crear usuario en Supabase Auth con cliente temporal (sin alterar sesión de administrador)
+    try {
+      const tempAuthClient = createClient(supabaseUrl, supabaseAnonKey, {
+        auth: { persistSession: false, autoRefreshToken: false }
+      });
+      await tempAuthClient.auth.signUp({
+        email: perfilEmail.trim(),
+        password: passFinal,
+        options: {
+          data: {
+            nombre: perfilNombre.trim(),
+            dni: perfilDni.trim(),
+            nivel: perfilNivel,
+            rol: 'alumno'
           }
         }
-      ]
+      });
+    } catch (authErr) {
+      console.warn('Aviso al registrar en Supabase Auth:', authErr);
+    }
+
+    const nuevoAlumno: Alumno = {
+      nombre: perfilNombre.trim(),
+      dni: perfilDni.trim(),
+      nivel: perfilNivel,
+      email: perfilEmail.trim(),
+      estado: perfilEstado,
+    };
+
+    const montoBase = parseFloat(perfilMontoCuota) || 45000;
+    const nuevasCuotas = generarCuotasDesdeHoy(perfilDni.trim(), perfilNombre.trim(), montoBase);
+
+    // Persistir alumno y cuotas en Supabase si existen las tablas
+    if (hasSupabaseAlumnos) {
+      await supabase.from('alumnos').insert([nuevoAlumno]);
+    }
+    if (hasSupabaseCuotas) {
+      await supabase.from('cuotas').insert(nuevasCuotas);
+    }
+
+    // Actualizar estado en memoria
+    setAlumnos(prev => [nuevoAlumno, ...prev.filter(a => a.dni !== nuevoAlumno.dni)]);
+    setCuotas(prev => [...nuevasCuotas, ...prev]);
+
+    // Eliminar la solicitud de inscripciones para que no quede duplicada
+    if (inscripcionSeleccionadaParaPerfil) {
+      await supabase.from('inscripciones').delete().eq('id', inscripcionSeleccionadaParaPerfil.id);
+      setInscripciones(prev => prev.filter(i => i.id !== inscripcionSeleccionadaParaPerfil.id));
+    }
+
+    setModalCrearPerfilVisible(false);
+
+    // Abrir inmediatamente el Perfil del Alumno creado para ver sus cuotas
+    setAlumnoSeleccionadoPerfil(nuevoAlumno);
+    setModalPerfilAlumnoVisible(true);
+
+    Alert.alert(
+      '¡Perfil y Acceso Creados!',
+      `Se dio de alta el perfil de ${nuevoAlumno.nombre} en el padrón y se habilitó su cuenta de acceso:\n\n` +
+      `📧 Correo: ${nuevoAlumno.email}\n` +
+      `🔑 Contraseña: ${passFinal}\n\n` +
+      `El alumno ya puede acceder a su panel con estas credenciales.`
     );
+  };
+
+  // Botón directo "Pague la cuota"
+  const handlePagarCuotaDirecto = async (cuota: Cuota) => {
+    const fechaHoy = new Date().toISOString().split('T')[0];
+
+    if (hasSupabaseCuotas && cuota.id) {
+      await supabase
+        .from('cuotas')
+        .update({
+          estado: 'Pagada',
+          fecha_pago: fechaHoy,
+          metodo_pago: 'Efectivo / Tesorería'
+        })
+        .eq('id', cuota.id);
+    }
+
+    // Actualizar cuotas locales
+    setCuotas(prev => prev.map(c => {
+      if ((c.id && cuota.id && c.id === cuota.id) || (c.alumno_dni === cuota.alumno_dni && c.mes === cuota.mes)) {
+        return {
+          ...c,
+          estado: 'Pagada',
+          fecha_pago: fechaHoy,
+          metodo_pago: 'Efectivo / Tesorería'
+        };
+      }
+      return c;
+    }));
+
+    Alert.alert(
+      '¡Cuota Pagada!',
+      `La cuota de ${cuota.mes} para ${cuota.alumno_nombre} ha sido registrada como PAGADA por este mes.`
+    );
+  };
+
+  // Abrir perfil de alumno existente desde el padrón
+  const handleVerPerfilAlumno = (alumno: Alumno) => {
+    setAlumnoSeleccionadoPerfil(alumno);
+    setModalPerfilAlumnoVisible(true);
   };
 
   const handleEliminarInscripcion = async (id: number, nombre: string) => {
@@ -309,7 +406,7 @@ export default function AdminDashboard() {
     );
   };
 
-  // 5. Acciones sobre Cuotas
+  // Acciones sobre Cuotas
   const handleCrearCuota = async () => {
     if (!cuotaDni.trim() || !cuotaNombre.trim() || !cuotaMonto.trim()) {
       Alert.alert('Campos requeridos', 'Por favor ingresá DNI, Nombre y Monto de la cuota.');
@@ -342,61 +439,27 @@ export default function AdminDashboard() {
     Alert.alert('Éxito', 'La cuota ha sido generada correctamente.');
   };
 
-  const handleConfirmarPago = async () => {
-    if (!cuotaSeleccionadaPago) return;
-
-    const fechaHoy = new Date().toISOString().split('T')[0];
-
-    if (hasSupabaseCuotas && cuotaSeleccionadaPago.id) {
-      await supabase
-        .from('cuotas')
-        .update({
-          estado: 'Pagada',
-          fecha_pago: fechaHoy,
-          metodo_pago: metodoPago
-        })
-        .eq('id', cuotaSeleccionadaPago.id);
-    }
-
-    setCuotas(prev => prev.map(c => {
-      if (c === cuotaSeleccionadaPago || (c.id && c.id === cuotaSeleccionadaPago.id)) {
-        return {
-          ...c,
-          estado: 'Pagada',
-          fecha_pago: fechaHoy,
-          metodo_pago: metodoPago
-        };
-      }
-      return c;
-    }));
-
-    setModalPagoVisible(false);
-    Alert.alert('Pago Registrado', `Se registró el pago de la cuota de ${cuotaSeleccionadaPago.alumno_nombre} mediante ${metodoPago}.`);
-  };
-
-  // 6. Generar Recibo de Pago en PDF
+  // Generar Recibo de Pago en PDF oficial
   const handleGenerarReciboPDF = async (cuota: Cuota) => {
-    const html = generarHtmlRecibo(cuota);
-
     try {
-      if (Platform.OS === 'web') {
-        await Print.printAsync({ html });
-      } else {
-        const { uri } = await Print.printToFileAsync({ html });
-        const isAvailable = await Sharing.isAvailableAsync();
-        if (isAvailable) {
-          await Sharing.shareAsync(uri);
-        } else {
-          Alert.alert('Éxito', 'Comprobante generado correctamente.');
-        }
-      }
+      const html = generarHtmlReciboPago({
+        id: cuota.id,
+        alumnoNombre: cuota.alumno_nombre,
+        alumnoDni: cuota.alumno_dni,
+        mes: cuota.mes,
+        monto: cuota.monto,
+        fechaPago: cuota.fecha_pago,
+        metodoPago: cuota.metodo_pago || 'Transferencia Bancaria'
+      });
+
+      await descargarOImprimirPDF(html, `Recibo_Cuota_${cuota.mes.replace(/\s+/g, '_')}`);
     } catch (error) {
       console.error(error);
       Alert.alert('Error', 'No se pudo generar el comprobante PDF.');
     }
   };
 
-  // 7. Filtros calculados
+  // Filtros calculados
   const filteredInscripciones = useMemo(() => {
     return inscripciones.filter(item => {
       const matchSearch = item.nombre.toLowerCase().includes(searchInscripcion.toLowerCase()) ||
@@ -416,6 +479,19 @@ export default function AdminDashboard() {
       return matchSearch && matchEstado;
     });
   }, [cuotas, searchCuota, estadoCuotaFilter]);
+
+  // Cuotas específicas del alumno que se encuentra abierto en el modal de perfil
+  const cuotasDelAlumnoPerfil = useMemo(() => {
+    if (!alumnoSeleccionadoPerfil) return [];
+    return cuotas.filter(c => c.alumno_dni === alumnoSeleccionadoPerfil.dni);
+  }, [cuotas, alumnoSeleccionadoPerfil]);
+
+  // Cuota actual/inmediata del alumno (ej: mes actual o primera pendiente)
+  const cuotaMesActualAlumno = useMemo(() => {
+    if (cuotasDelAlumnoPerfil.length === 0) return null;
+    const pendiente = cuotasDelAlumnoPerfil.find(c => c.estado !== 'Pagada');
+    return pendiente || cuotasDelAlumnoPerfil[0];
+  }, [cuotasDelAlumnoPerfil]);
 
   // Totales financieros
   const totalRecaudado = useMemo(() => {
@@ -540,7 +616,7 @@ export default function AdminDashboard() {
               <Text className="text-xl md:text-2xl font-black text-slate-800">
                 {activeTab === 'inscripciones' && 'Gestión de Nuevas Solicitudes de Vacantes'}
                 {activeTab === 'cuotas' && 'Gestión Financiera de Cuotas Escolares'}
-                {activeTab === 'alumnos' && 'Padrón de Alumnos Inscriptos'}
+                {activeTab === 'alumnos' && 'Padrón y Perfiles de Alumnos Inscriptos'}
                 {activeTab === 'sql' && 'Configuración de Base de Datos Supabase'}
               </Text>
               <View className="bg-emerald-100 px-2 py-0.5 rounded-full">
@@ -696,12 +772,13 @@ export default function AdminDashboard() {
                           <Text className="text-slate-700 font-bold text-xs uppercase">Ver Ficha</Text>
                         </TouchableOpacity>
 
+                        {/* Botón Inscribir que abre la opción de Crear Perfil de Alumno */}
                         <TouchableOpacity 
-                          onPress={() => handleAprobarInscripcion(item)}
-                          className="bg-emerald-600 hover:bg-emerald-700 px-3 py-2 rounded-lg flex-row items-center gap-1 shadow-sm"
+                          onPress={() => handleAbrirCrearPerfil(item)}
+                          className="bg-emerald-600 hover:bg-emerald-700 px-4 py-2 rounded-lg flex-row items-center gap-1.5 shadow-sm"
                         >
-                          <Text className="text-white text-xs">✓</Text>
-                          <Text className="text-white font-black text-xs uppercase">Inscribir</Text>
+                          <Text className="text-white text-xs">👤</Text>
+                          <Text className="text-white font-black text-xs uppercase">Inscribir Alumno</Text>
                         </TouchableOpacity>
 
                         <TouchableOpacity 
@@ -804,14 +881,11 @@ export default function AdminDashboard() {
                       <View className="flex-row gap-2 self-end md:self-center">
                         {cuota.estado !== 'Pagada' ? (
                           <TouchableOpacity 
-                            onPress={() => {
-                              setCuotaSeleccionadaPago(cuota);
-                              setModalPagoVisible(true);
-                            }}
-                            className="bg-emerald-600 hover:bg-emerald-700 px-4 py-2 rounded-lg flex-row items-center gap-1 shadow-sm"
+                            onPress={() => handlePagarCuotaDirecto(cuota)}
+                            className="bg-emerald-600 hover:bg-emerald-700 px-4 py-2 rounded-lg flex-row items-center gap-1.5 shadow-sm"
                           >
                             <Text className="text-white text-xs">💰</Text>
-                            <Text className="text-white font-black text-xs uppercase">Registrar Cobro</Text>
+                            <Text className="text-white font-black text-xs uppercase">Pague la cuota</Text>
                           </TouchableOpacity>
                         ) : (
                           <TouchableOpacity 
@@ -835,7 +909,10 @@ export default function AdminDashboard() {
         {activeTab === 'alumnos' && (
           <View className="flex-1 bg-white p-6 rounded-2xl shadow-sm">
             <View className="flex-row justify-between items-center mb-6">
-              <Text className="text-base font-black text-slate-800 uppercase tracking-wider">Estudiantes Registrados ({alumnos.length})</Text>
+              <View>
+                <Text className="text-base font-black text-slate-800 uppercase tracking-wider">Padrón de Estudiantes ({alumnos.length})</Text>
+                <Text className="text-xs text-slate-400">Haz clic en &quot;Ver Perfil y Cuotas&quot; para consultar y cobrar cuotas de cada alumno.</Text>
+              </View>
               <TouchableOpacity 
                 onPress={() => setModalNuevoAlumnoVisible(true)}
                 className="bg-blue-900 px-4 py-2 rounded-xl flex-row items-center gap-2"
@@ -850,7 +927,7 @@ export default function AdminDashboard() {
                 {alumnos.map((alumno, idx) => (
                   <View 
                     key={alumno.dni || idx}
-                    className="bg-slate-50 border border-slate-200 p-4 rounded-xl flex-col md:flex-row justify-between items-start md:items-center gap-4"
+                    className="bg-slate-50 border border-slate-200 p-4 rounded-xl flex-col md:flex-row justify-between items-start md:items-center gap-4 hover:border-blue-300 transition-all"
                   >
                     <View className="flex-1">
                       <View className="flex-row items-center gap-3">
@@ -864,11 +941,20 @@ export default function AdminDashboard() {
                       </View>
                       <View className="flex-row gap-4 mt-2 text-xs text-slate-500">
                         <Text className="text-xs text-slate-600">DNI: <Text className="font-bold">{alumno.dni}</Text></Text>
-                        <Text className="text-xs text-slate-600">Email: <Text className="font-bold">{alumno.email}</Text></Text>
+                        <Text className="text-xs text-slate-600">Email Tutor: <Text className="font-bold">{alumno.email}</Text></Text>
                       </View>
                     </View>
 
                     <View className="flex-row gap-2 self-end md:self-center">
+                      {/* Botón Ver Perfil y Cuotas */}
+                      <TouchableOpacity 
+                        onPress={() => handleVerPerfilAlumno(alumno)}
+                        className="bg-blue-900 hover:bg-blue-800 px-4 py-2 rounded-lg flex-row items-center gap-1.5 shadow-sm"
+                      >
+                        <Text className="text-white text-xs">👤</Text>
+                        <Text className="text-white font-black text-xs uppercase">Ver Perfil y Cuotas</Text>
+                      </TouchableOpacity>
+
                       <TouchableOpacity 
                         onPress={() => {
                           setCuotaDni(alumno.dni);
@@ -878,7 +964,7 @@ export default function AdminDashboard() {
                         className="bg-orange-500 hover:bg-orange-600 px-3 py-2 rounded-lg flex-row items-center gap-1"
                       >
                         <Text className="text-white text-xs">💳</Text>
-                        <Text className="text-white font-bold text-xs uppercase">Cobrar Cuota</Text>
+                        <Text className="text-white font-bold text-xs uppercase">Nueva Cuota</Text>
                       </TouchableOpacity>
                     </View>
                   </View>
@@ -957,7 +1043,7 @@ ON public.cuotas FOR ALL USING (true) WITH CHECK (true);
 
       </View>
 
-      {/* ---------------- MODAL FICHA DE INSCRIPCIÓN ---------------- */}
+      {/* ---------------- MODAL 1: FICHA DE INSCRIPCIÓN ---------------- */}
       <Modal visible={modalInscripcionVisible} transparent animationType="fade">
         <View className="flex-1 justify-center items-center bg-black/60 p-4">
           <View className="bg-white p-6 rounded-3xl w-full max-w-lg shadow-2xl">
@@ -991,10 +1077,11 @@ ON public.cuotas FOR ALL USING (true) WITH CHECK (true);
 
                 <View className="flex-row gap-3 mt-4">
                   <TouchableOpacity 
-                    onPress={() => handleAprobarInscripcion(selectedInscripcion)}
-                    className="flex-1 bg-emerald-600 py-3 rounded-xl items-center"
+                    onPress={() => handleAbrirCrearPerfil(selectedInscripcion)}
+                    className="flex-1 bg-emerald-600 py-3 rounded-xl items-center flex-row justify-center gap-2"
                   >
-                    <Text className="text-white font-black uppercase text-xs">Aceptar e Inscribir</Text>
+                    <Text className="text-white text-xs">👤</Text>
+                    <Text className="text-white font-black uppercase text-xs">Crear Perfil e Inscribir</Text>
                   </TouchableOpacity>
                   <TouchableOpacity 
                     onPress={() => handleEliminarInscripcion(selectedInscripcion.id, selectedInscripcion.nombre)}
@@ -1009,7 +1096,310 @@ ON public.cuotas FOR ALL USING (true) WITH CHECK (true);
         </View>
       </Modal>
 
-      {/* ---------------- MODAL EMITIR NUEVA CUOTA ---------------- */}
+      {/* ---------------- MODAL 2: CREAR PERFIL DEL ALUMNO (AL INSCRIBIR) ---------------- */}
+      <Modal visible={modalCrearPerfilVisible} transparent animationType="fade">
+        <View className="flex-1 justify-center items-center bg-black/60 p-4">
+          <View className="bg-white p-6 rounded-3xl w-full max-w-lg shadow-2xl">
+            <View className="flex-row justify-between items-center border-b border-slate-100 pb-4 mb-4">
+              <View>
+                <Text className="text-lg font-black text-slate-800 uppercase">Crear Perfil del Alumno</Text>
+                <Text className="text-xs text-orange-600 font-bold">Alta en Padrón y Calendario de Cuotas</Text>
+              </View>
+              <TouchableOpacity onPress={() => setModalCrearPerfilVisible(false)}>
+                <Text className="text-slate-400 font-bold text-xl">✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View className="gap-3">
+              <View>
+                <Text className="text-[11px] font-bold text-slate-600 mb-1">Nombre Completo del Alumno:</Text>
+                <TextInput 
+                  placeholder="Nombre y Apellido"
+                  value={perfilNombre}
+                  onChangeText={setPerfilNombre}
+                  className="bg-slate-50 border border-slate-200 p-3 rounded-xl text-xs text-slate-800"
+                />
+              </View>
+
+              <View className="flex-row gap-3">
+                <View className="flex-1">
+                  <Text className="text-[11px] font-bold text-slate-600 mb-1">DNI / Documento:</Text>
+                  <TextInput 
+                    placeholder="DNI"
+                    value={perfilDni}
+                    onChangeText={setPerfilDni}
+                    keyboardType="numeric"
+                    className="bg-slate-50 border border-slate-200 p-3 rounded-xl text-xs text-slate-800"
+                  />
+                </View>
+
+                <View className="flex-1">
+                  <Text className="text-[11px] font-bold text-slate-600 mb-1">Cuota Base ($):</Text>
+                  <TextInput 
+                    placeholder="Monto"
+                    value={perfilMontoCuota}
+                    onChangeText={setPerfilMontoCuota}
+                    keyboardType="numeric"
+                    className="bg-slate-50 border border-slate-200 p-3 rounded-xl text-xs text-slate-800 font-bold"
+                  />
+                </View>
+              </View>
+
+              <View>
+                <Text className="text-[11px] font-bold text-slate-600 mb-1">Correo Electrónico de Acceso (Usuario):</Text>
+                <TextInput 
+                  placeholder="email@tutor.com"
+                  value={perfilEmail}
+                  onChangeText={setPerfilEmail}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  className="bg-slate-50 border border-slate-200 p-3 rounded-xl text-xs text-slate-800"
+                />
+              </View>
+
+              <View>
+                <Text className="text-[11px] font-bold text-slate-600 mb-1">Contraseña de Acceso para el Alumno:</Text>
+                <TextInput 
+                  placeholder="Contraseña inicial"
+                  value={perfilPassword}
+                  onChangeText={setPerfilPassword}
+                  className="bg-slate-50 border border-slate-200 p-3 rounded-xl text-xs text-slate-800 font-mono"
+                />
+                <Text className="text-[10px] text-slate-400 mt-0.5">El estudiante usará este correo y clave para ingresar a su panel.</Text>
+              </View>
+
+              <View>
+                <Text className="text-[11px] font-bold text-slate-600 mb-1">Nivel Educativo:</Text>
+                <View className="flex-row gap-2">
+                  {['Nivel Inicial', 'Nivel Primario', 'Nivel Secundario'].map(n => (
+                    <TouchableOpacity
+                      key={n}
+                      onPress={() => setPerfilNivel(n)}
+                      className={`flex-1 p-2.5 rounded-xl border text-center ${perfilNivel === n ? 'bg-blue-900 border-blue-900' : 'bg-slate-50 border-slate-200'}`}
+                    >
+                      <Text className={`text-[10px] font-bold text-center ${perfilNivel === n ? 'text-white' : 'text-slate-600'}`}>
+                        {n.replace('Nivel ', '')}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              <View>
+                <Text className="text-[11px] font-bold text-slate-600 mb-1">Estado Académico Inicial:</Text>
+                <View className="flex-row gap-2">
+                  {['Regular', 'Becado', 'Condicional'].map(est => (
+                    <TouchableOpacity
+                      key={est}
+                      onPress={() => setPerfilEstado(est)}
+                      className={`flex-1 p-2.5 rounded-xl border text-center ${perfilEstado === est ? 'bg-emerald-700 border-emerald-700' : 'bg-slate-50 border-slate-200'}`}
+                    >
+                      <Text className={`text-[10px] font-bold text-center ${perfilEstado === est ? 'text-white' : 'text-slate-600'}`}>
+                        {est}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              <View className="bg-amber-50 border border-amber-200 p-3 rounded-xl mt-1">
+                <Text className="text-[11px] text-amber-800">
+                  ℹ️ Al confirmar, el alumno ingresará al padrón escolar y se generará automáticamente su calendario de cuotas (Matrícula y cuotas desde el día de hoy en adelante).
+                </Text>
+              </View>
+
+              <TouchableOpacity 
+                onPress={handleConfirmarCrearPerfil}
+                className="bg-emerald-600 hover:bg-emerald-700 py-4 rounded-xl items-center mt-2 shadow-lg"
+              >
+                <Text className="text-white font-black uppercase text-xs tracking-wider">Crear Perfil y Generar Cuotas</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ---------------- MODAL 3: PERFIL DEL ALUMNO Y SUS CUOTAS DESDE HOY ---------------- */}
+      <Modal visible={modalPerfilAlumnoVisible} transparent animationType="fade">
+        <View className="flex-1 justify-center items-center bg-black/60 p-4">
+          <View className="bg-white p-6 rounded-3xl w-full max-w-2xl max-h-[90vh] shadow-2xl flex-col">
+            
+            {/* Header del Perfil */}
+            <View className="flex-row justify-between items-start border-b border-slate-100 pb-4 mb-4">
+              {alumnoSeleccionadoPerfil && (
+                <View className="flex-row items-center gap-3">
+                  <View className="w-12 h-12 bg-blue-900 rounded-2xl items-center justify-center shadow-md">
+                    <Text className="text-white font-black text-lg">
+                      {alumnoSeleccionadoPerfil.nombre.charAt(0).toUpperCase()}
+                    </Text>
+                  </View>
+                  <View>
+                    <View className="flex-row items-center gap-2">
+                      <Text className="text-xl font-black text-slate-800">{alumnoSeleccionadoPerfil.nombre}</Text>
+                      <View className="bg-emerald-100 px-2.5 py-0.5 rounded-full">
+                        <Text className="text-[10px] font-black text-emerald-800 uppercase">{alumnoSeleccionadoPerfil.estado}</Text>
+                      </View>
+                    </View>
+                    <Text className="text-xs text-slate-500 mt-0.5">
+                      DNI: <Text className="font-bold text-slate-700">{alumnoSeleccionadoPerfil.dni}</Text> • {alumnoSeleccionadoPerfil.nivel} • 📧 {alumnoSeleccionadoPerfil.email}
+                    </Text>
+                    <View className="flex-row gap-1.5 mt-2">
+                      <View className="bg-blue-100 px-2 py-0.5 rounded-md">
+                        <Text className="text-[10px] font-bold text-blue-900">🇬🇧 Inglés Cambridge B1</Text>
+                      </View>
+                      <View className="bg-emerald-100 px-2 py-0.5 rounded-md">
+                        <Text className="text-[10px] font-bold text-emerald-900">⚽ Fútbol Formativo</Text>
+                      </View>
+                    </View>
+                  </View>
+                </View>
+              )}
+              <TouchableOpacity onPress={() => setModalPerfilAlumnoVisible(false)}>
+                <Text className="text-slate-400 font-bold text-2xl">✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* CUOTA DEL MES ACTUAL / EN CURSO - SECCIÓN DESTACADA CON BOTÓN 'PAGUE LA CUOTA' */}
+            {cuotaMesActualAlumno && (
+              <View className="bg-gradient-to-r from-orange-500 to-amber-500 p-5 rounded-2xl shadow-md mb-4 bg-orange-600">
+                <View className="flex-col md:flex-row justify-between items-start md:items-center gap-3">
+                  <View>
+                    <View className="flex-row items-center gap-2">
+                      <Text className="text-white font-bold text-xs uppercase tracking-wider">Cuota de este mes ({cuotaMesActualAlumno.mes})</Text>
+                      <View className={`px-2 py-0.5 rounded-full ${cuotaMesActualAlumno.estado === 'Pagada' ? 'bg-emerald-400' : 'bg-amber-300'}`}>
+                        <Text className="text-slate-900 text-[10px] font-black uppercase">{cuotaMesActualAlumno.estado}</Text>
+                      </View>
+                    </View>
+                    <Text className="text-white text-2xl font-black mt-1">
+                      ${cuotaMesActualAlumno.monto.toLocaleString('es-AR')}
+                    </Text>
+                    {cuotaMesActualAlumno.fecha_pago ? (
+                      <Text className="text-orange-100 text-xs mt-0.5">
+                        Abonada el {cuotaMesActualAlumno.fecha_pago} ({cuotaMesActualAlumno.metodo_pago || 'Tesorería'})
+                      </Text>
+                    ) : (
+                      <Text className="text-orange-100 text-xs mt-0.5">
+                        Vence: {cuotaMesActualAlumno.fecha_vencimiento || 'Al día'}
+                      </Text>
+                    )}
+                  </View>
+
+                  {/* BOTÓN SOLICITADO: 'PAGUE LA CUOTA' */}
+                  {cuotaMesActualAlumno.estado !== 'Pagada' ? (
+                    <TouchableOpacity 
+                      onPress={() => handlePagarCuotaDirecto(cuotaMesActualAlumno)}
+                      className="bg-white hover:bg-slate-100 px-6 py-3.5 rounded-xl flex-row items-center gap-2 shadow-lg self-stretch md:self-auto justify-center"
+                    >
+                      <Text className="text-emerald-700 text-base">💰</Text>
+                      <Text className="text-emerald-800 font-black uppercase text-xs tracking-wider">
+                        Pague la cuota
+                      </Text>
+                    </TouchableOpacity>
+                  ) : (
+                    <TouchableOpacity 
+                      onPress={() => handleGenerarReciboPDF(cuotaMesActualAlumno)}
+                      className="bg-white/90 hover:bg-white px-5 py-3 rounded-xl flex-row items-center gap-2 shadow-md"
+                    >
+                      <Text className="text-blue-900 text-xs">📄</Text>
+                      <Text className="text-blue-900 font-black uppercase text-xs tracking-wider">
+                        Ver Recibo PDF
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              </View>
+            )}
+
+            {/* LISTA DE TODAS LAS CUOTAS DESDE HOY EN ADELANTE */}
+            <View className="flex-1">
+              <View className="flex-row justify-between items-center mb-3">
+                <Text className="font-black text-slate-800 text-xs uppercase tracking-wider">
+                  Cuotas a pagar desde el día de hoy en adelante ({cuotasDelAlumnoPerfil.length})
+                </Text>
+                <TouchableOpacity 
+                  onPress={() => {
+                    if (alumnoSeleccionadoPerfil) {
+                      setCuotaDni(alumnoSeleccionadoPerfil.dni);
+                      setCuotaNombre(alumnoSeleccionadoPerfil.nombre);
+                      setModalNuevaCuotaVisible(true);
+                    }
+                  }}
+                  className="bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-lg border border-slate-200"
+                >
+                  <Text className="text-slate-700 font-bold text-[10px] uppercase">➕ Agregar otra cuota</Text>
+                </TouchableOpacity>
+              </View>
+
+              {cuotasDelAlumnoPerfil.length === 0 ? (
+                <View className="p-8 items-center justify-center bg-slate-50 rounded-2xl border border-slate-200">
+                  <Text className="text-3xl mb-1">📅</Text>
+                  <Text className="text-slate-600 font-bold text-xs">No hay cuotas programadas para este alumno.</Text>
+                </View>
+              ) : (
+                <ScrollView className="flex-1">
+                  <View className="gap-2.5">
+                    {cuotasDelAlumnoPerfil.map((c, i) => (
+                      <View 
+                        key={c.id || i}
+                        className="bg-slate-50 border border-slate-200 p-3.5 rounded-xl flex-col md:flex-row justify-between items-start md:items-center gap-3"
+                      >
+                        <View className="flex-1">
+                          <View className="flex-row items-center gap-2">
+                            <Text className="font-bold text-slate-800 text-sm">{c.mes}</Text>
+                            <View className={`px-2 py-0.5 rounded-full ${
+                              c.estado === 'Pagada' ? 'bg-emerald-100' :
+                              c.estado === 'Pendiente' ? 'bg-amber-100' : 'bg-red-100'
+                            }`}>
+                              <Text className={`text-[9px] font-black uppercase ${
+                                c.estado === 'Pagada' ? 'text-emerald-800' :
+                                c.estado === 'Pendiente' ? 'text-amber-800' : 'text-red-800'
+                              }`}>
+                                {c.estado}
+                              </Text>
+                            </View>
+                          </View>
+                          <Text className="text-xs text-slate-500 mt-1">
+                            Monto: <Text className="font-black text-blue-900">${c.monto.toLocaleString('es-AR')}</Text>
+                            {c.fecha_vencimiento && c.estado !== 'Pagada' && (
+                              <Text className="text-slate-500"> • Vence: {c.fecha_vencimiento}</Text>
+                            )}
+                            {c.fecha_pago && (
+                              <Text className="text-emerald-700"> • Pagado: {c.fecha_pago}</Text>
+                            )}
+                          </Text>
+                        </View>
+
+                        <View className="flex-row gap-2 self-end md:self-center">
+                          {c.estado !== 'Pagada' ? (
+                            <TouchableOpacity 
+                              onPress={() => handlePagarCuotaDirecto(c)}
+                              className="bg-emerald-600 hover:bg-emerald-700 px-3.5 py-2 rounded-lg flex-row items-center gap-1 shadow-sm"
+                            >
+                              <Text className="text-white text-xs">💰</Text>
+                              <Text className="text-white font-black text-xs uppercase">Pague la cuota</Text>
+                            </TouchableOpacity>
+                          ) : (
+                            <TouchableOpacity 
+                              onPress={() => handleGenerarReciboPDF(c)}
+                              className="bg-blue-900 hover:bg-blue-800 px-3 py-2 rounded-lg flex-row items-center gap-1 shadow-sm"
+                            >
+                              <Text className="text-white text-xs">📄</Text>
+                              <Text className="text-white font-bold text-xs uppercase">Recibo PDF</Text>
+                            </TouchableOpacity>
+                          )}
+                        </View>
+                      </View>
+                    ))}
+                  </View>
+                </ScrollView>
+              )}
+            </View>
+
+          </View>
+        </View>
+      </Modal>
+
+      {/* ---------------- MODAL 4: EMITIR NUEVA CUOTA MANUAL ---------------- */}
       <Modal visible={modalNuevaCuotaVisible} transparent animationType="fade">
         <View className="flex-1 justify-center items-center bg-black/60 p-4">
           <View className="bg-white p-6 rounded-3xl w-full max-w-md shadow-2xl">
@@ -1059,55 +1449,7 @@ ON public.cuotas FOR ALL USING (true) WITH CHECK (true);
         </View>
       </Modal>
 
-      {/* ---------------- MODAL REGISTRAR PAGO DE CUOTA ---------------- */}
-      <Modal visible={modalPagoVisible} transparent animationType="fade">
-        <View className="flex-1 justify-center items-center bg-black/60 p-4">
-          <View className="bg-white p-6 rounded-3xl w-full max-w-md shadow-2xl">
-            <View className="flex-row justify-between items-center border-b border-slate-100 pb-4 mb-4">
-              <Text className="text-lg font-black text-slate-800 uppercase">Registrar Cobro de Cuota</Text>
-              <TouchableOpacity onPress={() => setModalPagoVisible(false)}>
-                <Text className="text-slate-400 font-bold text-xl">✕</Text>
-              </TouchableOpacity>
-            </View>
-
-            {cuotaSeleccionadaPago && (
-              <View className="gap-4">
-                <View className="bg-slate-50 p-4 rounded-xl border border-slate-200">
-                  <Text className="text-slate-800 font-bold">{cuotaSeleccionadaPago.alumno_nombre}</Text>
-                  <Text className="text-xs text-slate-500">Período: {cuotaSeleccionadaPago.mes}</Text>
-                  <Text className="text-base font-black text-blue-900 mt-2">Monto a abonar: ${cuotaSeleccionadaPago.monto.toLocaleString('es-AR')}</Text>
-                </View>
-
-                <View>
-                  <Text className="text-xs font-bold text-slate-700 mb-2">Seleccionar Medio de Pago:</Text>
-                  <View className="gap-2">
-                    {['Transferencia Bancaria', 'Efectivo en Tesorería', 'Tarjeta de Débito/Crédito'].map((metodo) => (
-                      <TouchableOpacity 
-                        key={metodo}
-                        onPress={() => setMetodoPago(metodo)}
-                        className={`p-3 rounded-xl border ${metodoPago === metodo ? 'bg-orange-50 border-orange-500' : 'bg-slate-50 border-slate-200'}`}
-                      >
-                        <Text className={`text-xs font-bold ${metodoPago === metodo ? 'text-orange-900' : 'text-slate-700'}`}>
-                          {metodo}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                </View>
-
-                <TouchableOpacity 
-                  onPress={handleConfirmarPago}
-                  className="bg-emerald-600 py-4 rounded-xl items-center mt-2 shadow-lg"
-                >
-                  <Text className="text-white font-black uppercase text-xs tracking-wider">Confirmar Cobro</Text>
-                </TouchableOpacity>
-              </View>
-            )}
-          </View>
-        </View>
-      </Modal>
-
-      {/* ---------------- MODAL NUEVO ALUMNO ---------------- */}
+      {/* ---------------- MODAL ALTA DE NUEVO ALUMNO MANUAL ---------------- */}
       <Modal visible={modalNuevoAlumnoVisible} transparent animationType="fade">
         <View className="flex-1 justify-center items-center bg-black/60 p-4">
           <View className="bg-white p-6 rounded-3xl w-full max-w-md shadow-2xl">
@@ -1133,12 +1475,18 @@ ON public.cuotas FOR ALL USING (true) WITH CHECK (true);
                 className="bg-slate-50 border border-slate-200 p-3.5 rounded-xl text-xs"
               />
               <TextInput 
-                placeholder="Correo Electrónico del Tutor"
+                placeholder="Correo Electrónico de Acceso"
                 value={nuevoEmail}
                 onChangeText={setNuevoEmail}
                 keyboardType="email-address"
                 autoCapitalize="none"
                 className="bg-slate-50 border border-slate-200 p-3.5 rounded-xl text-xs"
+              />
+              <TextInput 
+                placeholder="Contraseña de Acceso para el Alumno"
+                value={nuevoPassword}
+                onChangeText={setNuevoPassword}
+                className="bg-slate-50 border border-slate-200 p-3.5 rounded-xl text-xs font-mono"
               />
 
               <View className="flex-row gap-2">
@@ -1157,10 +1505,34 @@ ON public.cuotas FOR ALL USING (true) WITH CHECK (true);
 
               <TouchableOpacity 
                 onPress={async () => {
-                  if (!nuevoNombre.trim() || !nuevoDni.trim()) {
-                    Alert.alert('Error', 'Completá nombre y DNI obligatoriamente.');
+                  if (!nuevoNombre.trim() || !nuevoDni.trim() || !nuevoEmail.trim()) {
+                    Alert.alert('Error', 'Completá nombre, DNI y correo obligatoriamente.');
                     return;
                   }
+
+                  const passFinal = nuevoPassword.trim() || `Alumno.${nuevoDni.replace(/\D/g, '') || '123'}!`;
+
+                  // Registrar cuenta en Supabase Auth
+                  try {
+                    const tempAuthClient = createClient(supabaseUrl, supabaseAnonKey, {
+                      auth: { persistSession: false, autoRefreshToken: false }
+                    });
+                    await tempAuthClient.auth.signUp({
+                      email: nuevoEmail.trim(),
+                      password: passFinal,
+                      options: {
+                        data: {
+                          nombre: nuevoNombre.trim(),
+                          dni: nuevoDni.trim(),
+                          nivel: nuevoNivel,
+                          rol: 'alumno'
+                        }
+                      }
+                    });
+                  } catch (authErr) {
+                    console.warn('Aviso Auth:', authErr);
+                  }
+
                   const alumno: Alumno = {
                     nombre: nuevoNombre.trim(),
                     dni: nuevoDni.trim(),
@@ -1168,19 +1540,33 @@ ON public.cuotas FOR ALL USING (true) WITH CHECK (true);
                     email: nuevoEmail.trim(),
                     estado: 'Regular'
                   };
+
+                  const nuevasCuotas = generarCuotasDesdeHoy(nuevoDni.trim(), nuevoNombre.trim(), 45000);
+
                   if (hasSupabaseAlumnos) {
                     await supabase.from('alumnos').insert([alumno]);
                   }
+                  if (hasSupabaseCuotas) {
+                    await supabase.from('cuotas').insert(nuevasCuotas);
+                  }
+
                   setAlumnos(prev => [alumno, ...prev]);
+                  setCuotas(prev => [...nuevasCuotas, ...prev]);
                   setNuevoNombre('');
                   setNuevoDni('');
                   setNuevoEmail('');
                   setModalNuevoAlumnoVisible(false);
-                  Alert.alert('Éxito', 'Alumno ingresado al padrón correctamente.');
+
+                  Alert.alert(
+                    '¡Alumno y Acceso Creados!',
+                    `El alumno fue ingresado y puede acceder con:\n\n` +
+                    `📧 Correo: ${alumno.email}\n` +
+                    `🔑 Contraseña: ${passFinal}`
+                  );
                 }}
                 className="bg-blue-900 py-4 rounded-xl items-center mt-2 shadow-lg"
               >
-                <Text className="text-white font-black uppercase text-xs tracking-wider">Guardar Alumno</Text>
+                <Text className="text-white font-black uppercase text-xs tracking-wider">Guardar Alumno y Crear Cuenta</Text>
               </TouchableOpacity>
             </View>
           </View>
