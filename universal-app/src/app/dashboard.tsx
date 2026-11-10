@@ -112,6 +112,16 @@ export default function Dashboard() {
               <Text className="text-white text-sm">🧪</Text>
               <Text className="font-black text-xs uppercase tracking-wider text-white">DevOps & QA (U4/U5)</Text>
             </TouchableOpacity>
+
+            {email.toLowerCase() === 'admin@educar.com' && (
+              <TouchableOpacity 
+                onPress={() => router.push('/admin' as any)}
+                className="flex-row items-center gap-3 p-3 rounded-xl bg-amber-600 hover:bg-amber-500 mt-2 shadow-sm"
+              >
+                <Text className="text-white text-sm">🛡️</Text>
+                <Text className="font-black text-xs uppercase tracking-wider text-white">Panel Administrador</Text>
+              </TouchableOpacity>
+            )}
           </View>
         </View>
 

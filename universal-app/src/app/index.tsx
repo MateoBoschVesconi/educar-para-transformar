@@ -73,7 +73,12 @@ export default function LandingPage() {
       Alert.alert('Error', 'Credenciales inválidas o error de red.');
     } else {
       setModalVisible(false);
-      router.push('/dashboard');
+      const cleanEmail = email.trim().toLowerCase();
+      if (cleanEmail === 'admin@educar.com') {
+        router.push('/admin' as any);
+      } else {
+        router.push('/dashboard');
+      }
     }
   };
 
@@ -397,6 +402,18 @@ export default function LandingPage() {
                     Ingresar
                   </Text>
                 )}
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => {
+                  setEmail('admin@educar.com');
+                  setPassword('Masertyuiop1');
+                }}
+                className="w-full bg-orange-50 border border-orange-200 py-2.5 rounded-xl items-center mt-1"
+              >
+                <Text className="text-orange-700 font-bold text-[11px] uppercase">
+                  🛡️ Autocompletar como Administrador
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
