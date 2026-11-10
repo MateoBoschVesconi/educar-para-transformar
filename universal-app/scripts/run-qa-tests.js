@@ -102,8 +102,10 @@ function validateSolicitudVacante(nombre, dni, correoTutor, nivel, mensaje) {
   return {
     valid: true,
     payload: {
+      nombre: nombre.trim(),
       nombre_completo: nombre.trim(),
       dni: dni.trim(),
+      email: correoTutor.trim(),
       correo_tutor: correoTutor.trim(),
       nivel: nivel || 'Nivel Inicial',
       mensaje: mensaje || '',

@@ -28,23 +28,35 @@ export default function LandingPage() {
 
     setSendingForm(true);
     
-    const { error } = await supabase
-      .from('solicitudes_vacante')
-      .insert([
-        { nombre_completo: nombre, dni, nivel, correo_tutor: correoTutor, mensaje }
-      ]);
-      
-    setSendingForm(false);
+    try {
+      const { error } = await supabase
+        .from('inscripciones')
+        .insert([
+          { 
+            nombre: nombre.trim(), 
+            dni: dni.trim(), 
+            nivel, 
+            email: correoTutor.trim(), 
+            mensaje: mensaje.trim() 
+          }
+        ]);
+        
+      setSendingForm(false);
 
-    if (error) {
-      Alert.alert('Error', 'Hubo un problema al enviar la solicitud. Inténtalo más tarde.');
-      console.error(error);
-    } else {
-      Alert.alert('Éxito', 'Tu solicitud ha sido enviada correctamente.');
-      setNombre('');
-      setDni('');
-      setCorreoTutor('');
-      setMensaje('');
+      if (error) {
+        Alert.alert('Error', 'Hubo un problema al enviar la solicitud. Inténtalo más tarde.');
+        console.error('Error al insertar en Supabase:', error);
+      } else {
+        Alert.alert('Éxito', 'Tu solicitud ha sido enviada correctamente.');
+        setNombre('');
+        setDni('');
+        setCorreoTutor('');
+        setMensaje('');
+      }
+    } catch (err) {
+      setSendingForm(false);
+      Alert.alert('Error', 'Hubo un problema de conexión al enviar la solicitud.');
+      console.error('Error inesperado al enviar solicitud:', err);
     }
   };
 
